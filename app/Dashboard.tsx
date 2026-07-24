@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Categories = Record<string, number>;
 
@@ -117,7 +117,7 @@ function AssetHistoryChart({
 
   const width = 440;
   const height = 190;
-  const padding = { top: 24, right: 14, bottom: 34, left: 14 };
+  const padding = { top: 28, right: 14, bottom: 34, left: 72 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const minYear = points[0].year;
@@ -147,19 +147,29 @@ function AssetHistoryChart({
         </desc>
         {[0, 0.5, 1].map((ratio) => {
           const gridY = padding.top + plotHeight * ratio;
+          const gridValue = maxValue * (1 - ratio);
           return (
-            <line
-              className="chart-grid-line"
-              x1={padding.left}
-              x2={width - padding.right}
-              y1={gridY}
-              y2={gridY}
-              key={ratio}
-            />
+            <g key={ratio}>
+              <line
+                className="chart-grid-line"
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={gridY}
+                y2={gridY}
+              />
+              <text
+                className="chart-axis-value"
+                x={padding.left - 9}
+                y={gridY + 3}
+                textAnchor="end"
+              >
+                {compactMoney.format(gridValue)}
+              </text>
+            </g>
           );
         })}
         <polyline className="chart-line" points={line} />
-        {points.map((point) => (
+        {points.map((point, index) => (
           <g key={point.year}>
             <line
               className="chart-guide"
@@ -186,13 +196,19 @@ function AssetHistoryChart({
             >
               {point.year}
             </text>
+            {index === points.length - 1 && (
+              <text
+                className="chart-latest-value"
+                x={x(point.year)}
+                y={Math.max(y(point.value) - 12, 13)}
+                textAnchor="end"
+              >
+                {compactMoney.format(point.value)}
+              </text>
+            )}
           </g>
         ))}
       </svg>
-      <div className="chart-range" aria-hidden="true">
-        <span>R$ 0</span>
-        <span>máximo: {compactMoney.format(maxValue)}</span>
-      </div>
     </div>
   );
 }
@@ -204,6 +220,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [sortMode, setSortMode] = useState<SortMode>("value");
   const [onlyComparable, setOnlyComparable] = useState(false);
   const [visible, setVisible] = useState(12);
+  const profileRef = useRef<HTMLElement>(null);
 
   const ranked = useMemo(
     () => [...deputies].sort((a, b) => b.value2022 - a.value2022),
@@ -212,6 +229,10 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [selectedId, setSelectedId] = useState(ranked[0].id);
   const selected =
     deputies.find((deputy) => deputy.id === selectedId) ?? ranked[0];
+
+  useEffect(() => {
+    profileRef.current?.scrollTo({ top: 0 });
+  }, [selectedId]);
 
   const states = useMemo(
     () => [...new Set(deputies.map((deputy) => deputy.uf))].sort(),
@@ -482,7 +503,11 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             )}
           </div>
 
-          <aside className="profile-card" aria-live="polite">
+          <aside
+            className="profile-card"
+            aria-live="polite"
+            ref={profileRef}
+          >
             <div className="profile-header">
               <div className="profile-avatar" aria-hidden="true">
                 {selected.name.charAt(0)}

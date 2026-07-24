@@ -712,12 +712,16 @@ a {
   font-weight: 700;
 }
 
-.chart-range {
-  color: var(--muted);
-  display: flex;
+.chart-axis-value {
+  fill: var(--muted);
   font-size: 9px;
-  justify-content: space-between;
-  margin-top: -4px;
+  font-weight: 700;
+}
+
+.chart-latest-value {
+  fill: var(--ink);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .chart-empty {
