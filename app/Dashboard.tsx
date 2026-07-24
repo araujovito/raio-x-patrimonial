@@ -86,6 +86,117 @@ function normalize(value: string) {
     .toLowerCase();
 }
 
+function AssetHistoryChart({
+  history,
+  name,
+}: {
+  history: ElectionEvent[];
+  name: string;
+}) {
+  const valuesByYear = new Map<number, number>();
+
+  history.forEach((event) => {
+    if (event.assetsTotal === null) return;
+    const current = valuesByYear.get(event.year);
+    if (current === undefined || event.assetsTotal > current) {
+      valuesByYear.set(event.year, event.assetsTotal);
+    }
+  });
+
+  const points = [...valuesByYear.entries()]
+    .map(([year, value]) => ({ year, value }))
+    .sort((a, b) => a.year - b.year);
+
+  if (points.length < 2) {
+    return (
+      <div className="chart-empty">
+        Ainda não há declarações suficientes para desenhar a evolução.
+      </div>
+    );
+  }
+
+  const width = 440;
+  const height = 190;
+  const padding = { top: 24, right: 14, bottom: 34, left: 14 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const minYear = points[0].year;
+  const maxYear = points[points.length - 1].year;
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
+  const x = (year: number) =>
+    padding.left +
+    ((year - minYear) / Math.max(maxYear - minYear, 1)) * plotWidth;
+  const y = (value: number) =>
+    padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const line = points
+    .map((point) => `${x(point.year)},${y(point.value)}`)
+    .join(" ");
+
+  return (
+    <div className="asset-chart">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-labelledby="asset-chart-title asset-chart-description"
+      >
+        <title id="asset-chart-title">
+          Evolução patrimonial declarada de {name}
+        </title>
+        <desc id="asset-chart-description">
+          Valores nominais declarados ao TSE entre {minYear} e {maxYear}.
+        </desc>
+        {[0, 0.5, 1].map((ratio) => {
+          const gridY = padding.top + plotHeight * ratio;
+          return (
+            <line
+              className="chart-grid-line"
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={gridY}
+              y2={gridY}
+              key={ratio}
+            />
+          );
+        })}
+        <polyline className="chart-line" points={line} />
+        {points.map((point) => (
+          <g key={point.year}>
+            <line
+              className="chart-guide"
+              x1={x(point.year)}
+              x2={x(point.year)}
+              y1={y(point.value)}
+              y2={padding.top + plotHeight}
+            />
+            <circle
+              className="chart-point"
+              cx={x(point.year)}
+              cy={y(point.value)}
+              r="5"
+            >
+              <title>
+                {point.year}: {money.format(point.value)}
+              </title>
+            </circle>
+            <text
+              className="chart-year"
+              x={x(point.year)}
+              y={height - 10}
+              textAnchor="middle"
+            >
+              {point.year}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <div className="chart-range" aria-hidden="true">
+        <span>R$ 0</span>
+        <span>máximo: {compactMoney.format(maxValue)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [query, setQuery] = useState("");
   const [uf, setUf] = useState("Todas");
@@ -432,6 +543,17 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
               </small>
             </div>
 
+            <div className="chart-block">
+              <div className="chart-heading">
+                <h4>Evolução patrimonial declarada</h4>
+                <span>valores nominais</span>
+              </div>
+              <AssetHistoryChart
+                history={selected.history}
+                name={selected.name}
+              />
+            </div>
+
             <div className="category-block">
               <h4>Composição em 2022</h4>
               {categoryEntries.map(([label, value]) => (
@@ -568,10 +690,23 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
           <span className="brand-mark">RX</span>
           <span>Raio-X Patrimonial</span>
         </div>
-        <p>
-          Projeto independente de visualização de dados públicos. Sem vínculo
-          com o TSE ou a Câmara dos Deputados.
-        </p>
+        <div className="footer-copy">
+          <p>
+            Projeto independente de visualização de dados públicos. Sem vínculo
+            com o TSE ou a Câmara dos Deputados.
+          </p>
+          <p className="author-credit">
+            Dados e desenvolvimento por{" "}
+            <a
+              href="https://github.com/araujovito"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Vitor Barbosa
+            </a>
+            .
+          </p>
+        </div>
         <a href="#inicio">Voltar ao topo ↑</a>
       </footer>
     </main>
