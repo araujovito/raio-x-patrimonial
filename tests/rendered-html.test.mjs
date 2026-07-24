@@ -32,6 +32,7 @@ test("renderiza a página principal com conteúdo e metadados próprios", async 
   assert.match(html, /O patrimônio/);
   assert.match(html, /513/);
   assert.match(html, /Explore os deputados/);
+  assert.match(html, /Trajetória eleitoral/);
   assert.match(html, /Como os dados foram tratados/);
   assert.match(html, /dadosabertos\.tse\.jus\.br/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);

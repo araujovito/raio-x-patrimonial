@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
     requestHeaders.get("x-forwarded-proto") ??
     (host.startsWith("localhost") ? "http" : "https");
   const origin = `${protocol}://${host}`;
-  const socialImage = new URL("/og.png", origin).toString();
+  const socialImage = new URL("/og-v2.png", origin).toString();
 
   return {
     metadataBase: new URL(origin),
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s | Raio-X Patrimonial",
     },
     description:
-      "Visualização independente dos bens declarados ao TSE pelos deputados federais eleitos em 2022.",
+      "Visualização independente da trajetória eleitoral e dos bens declarados ao TSE pelos deputados federais eleitos em 2022.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
@@ -57,7 +57,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       title: "Raio-X Patrimonial",
       description:
-        "Explore os bens declarados ao TSE pelos deputados federais eleitos em 2022.",
+        "Explore trajetórias eleitorais e bens declarados ao TSE desde 2000.",
       images: [socialImage],
     },
   };

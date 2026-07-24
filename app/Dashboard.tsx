@@ -4,6 +4,18 @@ import { useMemo, useState } from "react";
 
 type Categories = Record<string, number>;
 
+type ElectionEvent = {
+  year: number;
+  office: string;
+  party: string;
+  uf: string;
+  result: string;
+  elected: boolean;
+  assetsTotal: number | null;
+  assetItems: number | null;
+  assetCategories: Categories | null;
+};
+
 type Deputy = {
   id: string;
   name: string;
@@ -17,6 +29,15 @@ type Deputy = {
   items2018: number | null;
   categories2022: Categories;
   categories2018: Categories | null;
+  previousYear: number | null;
+  previousOffice: string | null;
+  previousParty: string | null;
+  previousValue: number | null;
+  previousItems: number | null;
+  previousCategories: Categories | null;
+  priorCandidacies: number;
+  priorVictories: number;
+  history: ElectionEvent[];
 };
 
 type SortMode = "value" | "growth" | "name";
@@ -37,8 +58,8 @@ const compactMoney = new Intl.NumberFormat("pt-BR", {
 const number = new Intl.NumberFormat("pt-BR");
 
 function variation(deputy: Deputy) {
-  if (deputy.value2018 === null || deputy.value2018 <= 0) return null;
-  return ((deputy.value2022 / deputy.value2018) - 1) * 100;
+  if (deputy.previousValue === null || deputy.previousValue <= 0) return null;
+  return ((deputy.value2022 / deputy.previousValue) - 1) * 100;
 }
 
 function percent(value: number | null) {
@@ -90,7 +111,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     [deputies],
   );
 
-  const comparable = deputies.filter((deputy) => deputy.value2018 !== null);
+  const comparable = deputies.filter((deputy) => deputy.previousValue !== null);
   const comparableVariations = comparable
     .map(variation)
     .filter((value): value is number => value !== null);
@@ -105,7 +126,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
         matchesSearch &&
         (uf === "Todas" || deputy.uf === uf) &&
         (party === "Todos" || deputy.party === party) &&
-        (!onlyComparable || deputy.value2018 !== null)
+        (!onlyComparable || deputy.previousValue !== null)
       );
     });
 
@@ -118,7 +139,11 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   }, [deputies, onlyComparable, party, query, sortMode, uf]);
 
   const selectedVariation = variation(selected);
-  const maxComparison = Math.max(selected.value2022, selected.value2018 ?? 0, 1);
+  const maxComparison = Math.max(
+    selected.value2022,
+    selected.previousValue ?? 0,
+    1,
+  );
   const categoryEntries = Object.entries(selected.categories2022).sort(
     ([, a], [, b]) => b - a,
   );
@@ -155,15 +180,16 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
 
       <section className="hero" id="inicio">
         <div className="hero-copy">
-          <p className="eyebrow">Eleições 2018 → 2022</p>
+          <p className="eyebrow">Trajetórias de 2000 → 2022</p>
           <h1>
             O patrimônio
             <br />
             <em>declarado</em> em dados.
           </h1>
           <p className="hero-description">
-            Explore e compare as declarações de bens dos 513 deputados federais
-            eleitos em 2022, com dados públicos do Tribunal Superior Eleitoral.
+            Explore a trajetória eleitoral e compare as declarações de bens dos
+            513 deputados federais eleitos em 2022, com dados públicos do
+            Tribunal Superior Eleitoral.
           </p>
           <a className="primary-action" href="#explorar">
             Começar a explorar <span aria-hidden="true">↓</span>
@@ -176,7 +202,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
           </div>
           <div className="stat">
             <span className="stat-number">{comparable.length}</span>
-            <span className="stat-label">comparáveis com 2018</span>
+            <span className="stat-label">com histórico anterior</span>
           </div>
           <div className="stat">
             <span className="stat-number">
@@ -198,9 +224,9 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
           i
         </span>
         <p>
-          <strong>Leia os números com contexto.</strong> São valores declarados
-          pelos candidatos ao TSE, não uma auditoria ou estimativa do patrimônio
-          atual. A comparação é nominal e não desconta a inflação.
+          <strong>Leia os números com contexto.</strong> Comparamos 2022 com a
+          declaração anterior mais recente de cada candidato. Os valores não são
+          uma auditoria, e a variação nominal não desconta a inflação.
         </p>
       </aside>
 
@@ -212,7 +238,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
           </div>
           <p>
             Busque por nome, filtre por estado ou partido e abra um perfil para
-            comparar as duas declarações.
+            ver a trajetória política e as declarações disponíveis.
           </p>
         </div>
 
@@ -271,7 +297,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             onClick={() => setOnlyComparable((current) => !current)}
           >
             <span aria-hidden="true">{onlyComparable ? "✓" : ""}</span>
-            Apenas com comparação em 2018
+            Apenas com declaração anterior
           </button>
           <p>
             <strong>{number.format(filtered.length)}</strong>{" "}
@@ -284,7 +310,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             <div className="table-head">
               <span>Deputado</span>
               <span>Declarado em 2022</span>
-              <span>Variação</span>
+              <span>Variação anterior</span>
             </div>
             <div className="result-list">
               {filtered.slice(0, visible).map((deputy) => {
@@ -354,25 +380,31 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                 <p>Perfil selecionado</p>
                 <h3>{selected.name}</h3>
                 <span>
-                  {selected.party} · {selected.uf}
+                  {selected.party} · {selected.uf} ·{" "}
+                  {selected.priorCandidacies} candidaturas anteriores
                 </span>
               </div>
             </div>
 
             <div className="comparison">
               <div className="comparison-label">
-                <span>2018</span>
+                <span>
+                  {selected.previousYear ?? "Anterior"}
+                  {selected.previousOffice
+                    ? ` · ${selected.previousOffice}`
+                    : ""}
+                </span>
                 <strong>
-                  {selected.value2018 === null
+                  {selected.previousValue === null
                     ? "não comparável"
-                    : money.format(selected.value2018)}
+                    : money.format(selected.previousValue)}
                 </strong>
               </div>
               <div className="bar-track">
                 <span
                   className="bar bar-2018"
                   style={{
-                    width: `${((selected.value2018 ?? 0) / maxComparison) * 100}%`,
+                    width: `${((selected.previousValue ?? 0) / maxComparison) * 100}%`,
                   }}
                 />
               </div>
@@ -394,9 +426,9 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
               <span>Variação nominal</span>
               <strong>{percent(selectedVariation)}</strong>
               <small>
-                {selected.value2018 === null
-                  ? "Não foi localizada candidatura equivalente em 2018."
-                  : `${selected.items2018} itens em 2018 → ${selected.items2022} em 2022`}
+                {selected.previousValue === null
+                  ? "Não foi localizada candidatura anterior desde 2000."
+                  : `${selected.previousItems} itens em ${selected.previousYear} → ${selected.items2022} em 2022`}
               </small>
             </div>
 
@@ -418,6 +450,42 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                 </div>
               ))}
             </div>
+
+            <div className="timeline-block">
+              <div className="timeline-heading">
+                <h4>Trajetória eleitoral</h4>
+                <span>
+                  {selected.priorVictories}{" "}
+                  {selected.priorVictories === 1
+                    ? "eleição anterior"
+                    : "eleições anteriores"}
+                </span>
+              </div>
+              <div className="timeline">
+                {selected.history.map((event, index) => (
+                  <div
+                    className={`timeline-event ${
+                      event.elected ? "timeline-elected" : ""
+                    }`}
+                    key={`${event.year}-${event.office}-${event.party}-${index}`}
+                  >
+                    <span className="timeline-year">{event.year}</span>
+                    <div>
+                      <strong>{event.office}</strong>
+                      <small>
+                        {event.party} · {event.uf}
+                      </small>
+                      <span>{event.result}</span>
+                    </div>
+                    <div className="timeline-assets">
+                      {event.assetsTotal === null
+                        ? "bens indisponíveis"
+                        : compactMoney.format(event.assetsTotal)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </aside>
         </div>
       </section>
@@ -434,7 +502,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
               <h3>Recorte</h3>
               <p>
                 Foram selecionados os 513 candidatos marcados pelo TSE como
-                eleitos por quociente partidário ou média em 2022.
+                eleitos em 2022 e suas candidaturas desde o ano 2000.
               </p>
             </div>
           </li>
@@ -443,8 +511,8 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             <div>
               <h3>Correspondência</h3>
               <p>
-                As candidaturas de 2018 e 2022 foram relacionadas durante o
-                processamento. O arquivo publicado não contém CPF.
+                As candidaturas de diferentes anos e cargos foram relacionadas
+                durante o processamento. O arquivo publicado não contém CPF.
               </p>
             </div>
           </li>
@@ -453,8 +521,9 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             <div>
               <h3>Agregação</h3>
               <p>
-                Os valores de cada item declarado foram somados por candidato e
-                agrupados em categorias para facilitar a leitura.
+                Os bens disponíveis desde 2006 foram somados por candidatura e
+                agrupados em categorias. A comparação usa a declaração anterior
+                mais recente.
               </p>
             </div>
           </li>

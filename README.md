@@ -1,14 +1,16 @@
 # Raio-X Patrimonial
 
-Aplicação interativa para explorar os bens declarados ao TSE pelos 513
-deputados federais eleitos em 2022 e, quando existe candidatura correspondente,
-comparar as declarações de 2018 e 2022.
+Aplicação interativa para explorar a trajetória eleitoral e os bens declarados
+ao TSE pelos 513 deputados federais eleitos em 2022. O histórico cobre
+candidaturas desde 2000, e a comparação patrimonial usa a declaração anterior
+mais recente disponível.
 
 ## O que o projeto demonstra
 
 - ingestão e limpeza de dados públicos;
-- relacionamento de registros entre eleições;
+- relacionamento de registros entre eleições, cargos e partidos;
 - agregação e categorização de bens;
+- construção de linhas do tempo eleitorais;
 - interface responsiva com busca, filtros e ordenação;
 - documentação explícita das limitações da análise.
 
@@ -25,9 +27,9 @@ processamento. O arquivo publicado não contém CPF.
 python scripts/prepare_data.py
 ```
 
-O script baixa os conjuntos `consulta_cand` e `bem_candidato` de 2018 e 2022,
-seleciona os candidatos a deputado federal eleitos em 2022 e gera
-`app/data/deputados.json`.
+O script baixa os conjuntos `consulta_cand` de 2000 a 2022 e
+`bem_candidato` de 2006 a 2022, seleciona os candidatos a deputado federal
+eleitos em 2022 e gera `app/data/deputados.json`.
 
 ## Rodar o site
 
@@ -47,7 +49,9 @@ node --test tests/rendered-html.test.mjs
 
 - Os valores foram declarados pelos próprios candidatos.
 - A variação exibida é nominal e não desconta a inflação.
-- Ausência de comparação significa que não foi localizada candidatura
-  equivalente a deputado federal em 2018.
+- Ausência de comparação significa que não foi localizada declaração anterior
+  nas bases analisadas.
+- Candidatura anterior não significa exercício do cargo; o resultado eleitoral
+  é exibido separadamente.
 - Crescimento ou redução não deve ser interpretado isoladamente como renda,
   irregularidade ou avaliação atual de mercado.
