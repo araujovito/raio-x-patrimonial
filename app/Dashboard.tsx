@@ -137,14 +137,8 @@ function AssetHistoryChart({
       <svg
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-labelledby="asset-chart-title asset-chart-description"
+        aria-label={`Evolução patrimonial declarada de ${name}. Valores nominais entre ${minYear} e ${maxYear}.`}
       >
-        <title id="asset-chart-title">
-          Evolução patrimonial declarada de {name}
-        </title>
-        <desc id="asset-chart-description">
-          Valores nominais declarados ao TSE entre {minYear} e {maxYear}.
-        </desc>
         {[0, 0.5, 1].map((ratio) => {
           const gridY = padding.top + plotHeight * ratio;
           const gridValue = maxValue * (1 - ratio);
@@ -183,11 +177,8 @@ function AssetHistoryChart({
               cx={x(point.year)}
               cy={y(point.value)}
               r="5"
-            >
-              <title>
-                {point.year}: {money.format(point.value)}
-              </title>
-            </circle>
+              aria-label={`${point.year}: ${money.format(point.value)}`}
+            />
             <text
               className="chart-year"
               x={x(point.year)}
