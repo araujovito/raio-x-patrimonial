@@ -1,5 +1,13 @@
 # Raio-X Patrimonial
 
+![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-513%2F513-154e3b)
+![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-511%2F513-154e3b)
+![Fonte](https://img.shields.io/badge/fonte-TSE-154e3b)
+
+> **Dados verificados contra o TSE.** Patrimônio e número de bens conferem em
+> 513/513 e a trajetória eleitoral em 511/513 dos deputados. Qualquer pessoa pode
+> reproduzir a verificação com `python scripts/conferir_tse.py`.
+
 Aplicação interativa para explorar a trajetória eleitoral e os bens declarados
 ao TSE pelos 513 deputados federais eleitos em 2022. O histórico cobre
 candidaturas desde 2000, e a comparação patrimonial usa a declaração anterior
