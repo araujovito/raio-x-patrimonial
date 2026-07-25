@@ -1,10 +1,20 @@
+import { existsSync, readFileSync } from "node:fs";
 import vinext from "vinext";
 import { defineConfig } from "vite";
-import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
+
+// Bindings opcionais de hospedagem (d1/r2). O arquivo .openai/hosting.json é
+// específico do ambiente de preview e não é versionado; quando ele não existe
+// (clone limpo, CI, outra máquina), usamos padrões nulos para que o build
+// funcione sem depender dele.
+const hostingConfig: { d1?: string | null; r2?: string | null } = existsSync(
+  "./.openai/hosting.json",
+)
+  ? JSON.parse(readFileSync("./.openai/hosting.json", "utf-8"))
+  : { d1: null, r2: null };
 
 const { d1, r2 } = hostingConfig;
 

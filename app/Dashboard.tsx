@@ -339,10 +339,19 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const selected =
     deputies.find((deputy) => deputy.id === selectedId) ?? ranked[0];
 
-  useEffect(() => {
-    profileRef.current?.scrollTo({ top: 0 });
+  // Ao trocar de deputado, reinicia o estado específico do perfil durante a
+  // renderização (padrão recomendado pelo React) em vez de dentro de um efeito,
+  // evitando um passo de renderização extra.
+  const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
+  if (selectedId !== prevSelectedId) {
+    setPrevSelectedId(selectedId);
     setPhotoFailed(false);
     setCompositionYear(assetEvents(selected.history)[0]?.year ?? 2022);
+  }
+
+  // A rolagem para o topo do perfil é um efeito de DOM real e permanece aqui.
+  useEffect(() => {
+    profileRef.current?.scrollTo({ top: 0 });
   }, [selectedId]);
 
   const states = useMemo(
