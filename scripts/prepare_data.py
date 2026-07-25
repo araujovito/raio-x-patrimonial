@@ -62,6 +62,18 @@ def read_csv(year: int, dataset: str):
         yield from csv.DictReader(lines, delimiter=";")
 
 
+def cpf_key(row: dict) -> str:
+    """CPF normalizado para relacionar candidaturas entre eleições.
+
+    Alguns arquivos do TSE (por exemplo os de 2012 e 2014) gravam o
+    ``NR_CPF_CANDIDATO`` sem os zeros à esquerda (10, 9 ou menos dígitos). Sem
+    normalizar, o casamento por igualdade de string falha para todo candidato
+    cujo CPF começa com zero, descartando candidaturas antigas legítimas.
+    Preencher com zeros à esquerda até 11 dígitos reconstrói a chave correta.
+    """
+    return (row.get("NR_CPF_CANDIDATO") or "").strip().zfill(11)
+
+
 def money(value: str) -> Decimal:
     return Decimal(value.replace(".", "").replace(",", ".") or "0")
 
@@ -97,7 +109,7 @@ def build_dataset() -> list[dict]:
         and row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
     ]
     elected_by_cpf = {
-        row["NR_CPF_CANDIDATO"]: row
+        cpf_key(row): row
         for row in elected_2022
     }
     elected_cpfs = set(elected_by_cpf)
@@ -107,7 +119,7 @@ def build_dataset() -> list[dict]:
 
     for year in CANDIDATE_YEARS:
         for row in read_csv(year, "consulta_cand"):
-            cpf = row["NR_CPF_CANDIDATO"]
+            cpf = cpf_key(row)
             if cpf not in elected_cpfs:
                 continue
             event = {

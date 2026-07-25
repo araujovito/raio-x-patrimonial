@@ -86,13 +86,99 @@ function normalize(value: string) {
     .toLowerCase();
 }
 
+// O TSE usa marcadores t\u00e9cnicos (#Nulo#, #NULO, etc.) quando n\u00e3o h\u00e1 resultado
+// apurado para aquela candidatura. Exibimos um r\u00f3tulo neutro no lugar do c\u00f3digo.
+function resultLabel(result: string) {
+  const cleaned = result.replace(/#/g, "").trim();
+  if (cleaned === "" || normalize(cleaned) === "nulo") {
+    return "Sem resultado apurado";
+  }
+  return result;
+}
+
+// Algumas candidaturas aparecem duas vezes no mesmo ano/cargo por causa do 2\u00ba
+// turno (ex.: "2\u00ba Turno" e "N\u00e3o Eleito"), com o mesmo patrim\u00f4nio declarado.
+// Consolidamos por ano+cargo+partido, mantendo a entrada mais informativa:
+// preferimos a que resultou em elei\u00e7\u00e3o e, na falta dela, a que tem resultado
+// apurado (n\u00e3o t\u00e9cnico).
+function dedupeHistory(history: ElectionEvent[]) {
+  const byKey = new Map<string, ElectionEvent>();
+
+  history.forEach((event) => {
+    const key = `${event.year}-${event.office}-${event.party}`;
+    const current = byKey.get(key);
+    if (current === undefined) {
+      byKey.set(key, event);
+      return;
+    }
+    const currentIsTechnical =
+      resultLabel(current.result) === "Sem resultado apurado";
+    const eventIsTechnical =
+      resultLabel(event.result) === "Sem resultado apurado";
+    // Prioridade: eleito > resultado apurado > mant\u00e9m o atual.
+    if (
+      (event.elected && !current.elected) ||
+      (event.elected === current.elected && currentIsTechnical && !eventIsTechnical)
+    ) {
+      byKey.set(key, event);
+    }
+  });
+
+  return [...byKey.values()];
+}
+
+function candidatePhotoUrl(deputy: Deputy) {
+  return `/deputados/${deputy.id}.jpeg`;
+}
+
+// Código da Eleição Geral Federal de 2022 no sistema de Divulgação do TSE.
+const TSE_ID_ELEICAO_2022 = "2040602022";
+
+// Região de cada UF. O TSE ignora esse trecho da rota ao carregar o candidato,
+// mas informá-lo corretamente deixa a trilha de navegação (breadcrumb) coerente.
+const TSE_REGIAO_POR_UF: Record<string, string> = {
+  AC: "NORTE", AP: "NORTE", AM: "NORTE", PA: "NORTE", RO: "NORTE", RR: "NORTE", TO: "NORTE",
+  AL: "NORDESTE", BA: "NORDESTE", CE: "NORDESTE", MA: "NORDESTE", PB: "NORDESTE",
+  PE: "NORDESTE", PI: "NORDESTE", RN: "NORDESTE", SE: "NORDESTE",
+  DF: "CENTROOESTE", GO: "CENTROOESTE", MT: "CENTROOESTE", MS: "CENTROOESTE",
+  ES: "SUDESTE", MG: "SUDESTE", RJ: "SUDESTE", SP: "SUDESTE",
+  PR: "SUL", RS: "SUL", SC: "SUL",
+};
+
+// Ficha do candidato no TSE (contém abas de Bens, Eleições e Prestação de Contas).
+// Formato validado no sistema atual (v2.8.9):
+// #/candidato/{REGIAO}/{UF}/{idEleicao}/{sqCandidato}/{ano}/{UF}
+function candidateSourceUrl(deputy: Deputy) {
+  const regiao = TSE_REGIAO_POR_UF[deputy.uf] ?? "BRASIL";
+  return `https://divulgacandcontas.tse.jus.br/divulga/#/candidato/${regiao}/${deputy.uf}/${TSE_ID_ELEICAO_2022}/${deputy.id}/2022/${deputy.uf}`;
+}
+
+function assetEvents(history: ElectionEvent[]) {
+  const byYear = new Map<number, ElectionEvent>();
+
+  history.forEach((event) => {
+    if (event.assetsTotal === null || event.assetCategories === null) return;
+    const current = byYear.get(event.year);
+    if (current === undefined || event.assetsTotal > (current.assetsTotal ?? 0)) {
+      byYear.set(event.year, event);
+    }
+  });
+
+  return [...byYear.values()].sort((a, b) => b.year - a.year);
+}
+
 function AssetHistoryChart({
   history,
   name,
+  selectedYear,
+  onSelectYear,
 }: {
   history: ElectionEvent[];
   name: string;
+  selectedYear: number;
+  onSelectYear: (year: number) => void;
 }) {
+  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
   const valuesByYear = new Map<number, number>();
 
   history.forEach((event) => {
@@ -131,6 +217,17 @@ function AssetHistoryChart({
   const line = points
     .map((point) => `${x(point.year)},${y(point.value)}`)
     .join(" ");
+  const hoveredPoint = points.find((point) => point.year === hoveredYear);
+  const tooltipWidth = 148;
+  const tooltipX = hoveredPoint
+    ? Math.min(
+        Math.max(x(hoveredPoint.year) - tooltipWidth / 2, padding.left),
+        width - padding.right - tooltipWidth,
+      )
+    : 0;
+  const tooltipY = hoveredPoint
+    ? Math.max(y(hoveredPoint.value) - 50, 5)
+    : 0;
 
   return (
     <div className="asset-chart">
@@ -164,7 +261,15 @@ function AssetHistoryChart({
         })}
         <polyline className="chart-line" points={line} />
         {points.map((point, index) => (
-          <g key={point.year}>
+          <g
+            className={`chart-point-group ${
+              point.year === selectedYear ? "is-selected" : ""
+            }`}
+            key={point.year}
+            onPointerEnter={() => setHoveredYear(point.year)}
+            onPointerLeave={() => setHoveredYear(null)}
+            onClick={() => onSelectYear(point.year)}
+          >
             <line
               className="chart-guide"
               x1={x(point.year)}
@@ -199,6 +304,17 @@ function AssetHistoryChart({
             )}
           </g>
         ))}
+        {hoveredPoint && (
+          <g className="chart-tooltip" pointerEvents="none">
+            <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height="38" rx="3" />
+            <text x={tooltipX + 10} y={tooltipY + 15}>
+              {hoveredPoint.year}
+            </text>
+            <text x={tooltipX + 10} y={tooltipY + 29}>
+              {money.format(hoveredPoint.value)}
+            </text>
+          </g>
+        )}
       </svg>
     </div>
   );
@@ -211,6 +327,8 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [sortMode, setSortMode] = useState<SortMode>("value");
   const [onlyComparable, setOnlyComparable] = useState(false);
   const [visible, setVisible] = useState(12);
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [compositionYear, setCompositionYear] = useState(2022);
   const profileRef = useRef<HTMLElement>(null);
 
   const ranked = useMemo(
@@ -223,6 +341,8 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
 
   useEffect(() => {
     profileRef.current?.scrollTo({ top: 0 });
+    setPhotoFailed(false);
+    setCompositionYear(assetEvents(selected.history)[0]?.year ?? 2022);
   }, [selectedId]);
 
   const states = useMemo(
@@ -267,8 +387,17 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     selected.previousValue ?? 0,
     1,
   );
-  const categoryEntries = Object.entries(selected.categories2022).sort(
+  const selectedAssetEvents = assetEvents(selected.history);
+  const selectedComposition =
+    selectedAssetEvents.find((event) => event.year === compositionYear) ??
+    selectedAssetEvents[0];
+  const categoryEntries = Object.entries(
+    selectedComposition?.assetCategories ?? {},
+  ).sort(
     ([, a], [, b]) => b - a,
+  );
+  const hasActiveFilters = Boolean(
+    query || uf !== "Todas" || party !== "Todos" || onlyComparable || sortMode !== "value",
   );
 
   function resetFilters() {
@@ -368,15 +497,31 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
         <div className="filter-grid">
           <label className="search-field">
             <span>Buscar deputado</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setVisible(12);
-              }}
-              placeholder="Digite um nome…"
-            />
+            <div className="search-input-wrap">
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setVisible(12);
+                }}
+                placeholder="Ex.: Eunício ou Atila Lins"
+                aria-describedby="search-help"
+              />
+              {query && (
+                <button
+                  className="clear-search"
+                  type="button"
+                  onClick={() => setQuery("")}
+                  aria-label="Limpar busca"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <small id="search-help">
+              Pesquise pelo nome de urna ou nome completo.
+            </small>
           </label>
           <label>
             <span>Estado</span>
@@ -413,18 +558,25 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
         </div>
 
         <div className="results-toolbar">
-          <button
-            className={`comparison-toggle ${onlyComparable ? "active" : ""}`}
-            type="button"
-            aria-pressed={onlyComparable}
-            onClick={() => setOnlyComparable((current) => !current)}
-          >
-            <span aria-hidden="true">{onlyComparable ? "✓" : ""}</span>
-            Apenas com declaração anterior
-          </button>
+          <div className="filter-actions">
+            <button
+              className={`comparison-toggle ${onlyComparable ? "active" : ""}`}
+              type="button"
+              aria-pressed={onlyComparable}
+              onClick={() => setOnlyComparable((current) => !current)}
+            >
+              <span aria-hidden="true">{onlyComparable ? "✓" : ""}</span>
+              Apenas com declaração anterior
+            </button>
+            {hasActiveFilters && (
+              <button className="reset-filters" type="button" onClick={resetFilters}>
+                Limpar filtros
+              </button>
+            )}
+          </div>
           <p>
             <strong>{number.format(filtered.length)}</strong>{" "}
-            {filtered.length === 1 ? "resultado" : "resultados"}
+            {query ? `resultado${filtered.length === 1 ? "" : "s"} para “${query}”` : filtered.length === 1 ? "resultado" : "resultados"}
           </p>
         </div>
 
@@ -500,8 +652,22 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             ref={profileRef}
           >
             <div className="profile-header">
-              <div className="profile-avatar" aria-hidden="true">
-                {selected.name.charAt(0)}
+              <div className="profile-avatar">
+                <span
+                  aria-hidden={!photoFailed}
+                  aria-label={
+                    photoFailed ? `Foto indisponível para ${selected.name}` : undefined
+                  }
+                >
+                  {selected.name.charAt(0)}
+                </span>
+                {!photoFailed && (
+                  <img
+                    src={candidatePhotoUrl(selected)}
+                    alt={`Foto de ${selected.name}`}
+                    onError={() => setPhotoFailed(true)}
+                  />
+                )}
               </div>
               <div>
                 <p>Perfil selecionado</p>
@@ -510,6 +676,19 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                   {selected.party} · {selected.uf} ·{" "}
                   {selected.priorCandidacies} candidaturas anteriores
                 </span>
+                <small>Foto oficial da candidatura em 2022.</small>
+                <div className="profile-source-links">
+                  <a
+                    href={candidateSourceUrl(selected)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ficha no TSE ↗
+                  </a>
+                  <small className="source-hint">
+                    Inclui bens declarados, eleições e prestação de contas.
+                  </small>
+                </div>
               </div>
             </div>
 
@@ -567,11 +746,41 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
               <AssetHistoryChart
                 history={selected.history}
                 name={selected.name}
+                selectedYear={selectedComposition?.year ?? 2022}
+                onSelectYear={setCompositionYear}
               />
             </div>
 
             <div className="category-block">
-              <h4>Composição em 2022</h4>
+              <div className="composition-heading">
+                <div>
+                  <h4>Composição patrimonial</h4>
+                  <span>
+                    {selectedComposition
+                      ? `${selectedComposition.office} · ${selectedComposition.party}`
+                      : "dados indisponíveis"}
+                  </span>
+                </div>
+                <label>
+                  <span>Eleição</span>
+                  <select
+                    className="composition-select"
+                    value={selectedComposition?.year ?? ""}
+                    onChange={(event) => setCompositionYear(Number(event.target.value))}
+                  >
+                    {selectedAssetEvents.map((event) => (
+                      <option key={event.year} value={event.year}>
+                        {event.year}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {selectedComposition && (
+                <p className="composition-total">
+                  Total declarado: <strong>{money.format(selectedComposition.assetsTotal ?? 0)}</strong>
+                </p>
+              )}
               {categoryEntries.map(([label, value]) => (
                 <div className="category-row" key={label}>
                   <div>
@@ -581,7 +790,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                   <div className="category-track">
                     <span
                       style={{
-                        width: `${selected.value2022 ? (value / selected.value2022) * 100 : 0}%`,
+                        width: `${selectedComposition?.assetsTotal ? (value / selectedComposition.assetsTotal) * 100 : 0}%`,
                       }}
                     />
                   </div>
@@ -600,7 +809,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                 </span>
               </div>
               <div className="timeline">
-                {selected.history.map((event, index) => (
+                {dedupeHistory(selected.history).map((event, index) => (
                   <div
                     className={`timeline-event ${
                       event.elected ? "timeline-elected" : ""
@@ -613,7 +822,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                       <small>
                         {event.party} · {event.uf}
                       </small>
-                      <span>{event.result}</span>
+                      <span>{resultLabel(event.result)}</span>
                     </div>
                     <div className="timeline-assets">
                       {event.assetsTotal === null
