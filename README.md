@@ -45,7 +45,9 @@ O script compara, para cada um dos 513 deputados, o **patrimônio total** e o
 anos em comum entre as duas fontes). Gera um relatório em
 `outputs/conferencia-513-tse.md`. Use `--limit N` para uma amostra rápida.
 
-Na última verificação, patrimônio e número de bens conferiram em **513/513**.
+Na última verificação, patrimônio e número de bens conferiram em **513/513** e a
+trajetória eleitoral em **511/513** (as duas exceções são candidaturas
+presidenciais de 2014 com CPF ocultado pelo TSE — ver Limitações).
 
 ## Rodar o site
 
@@ -71,8 +73,7 @@ node --test tests/rendered-html.test.mjs
   é exibido separadamente.
 - Crescimento ou redução não deve ser interpretado isoladamente como renda,
   irregularidade ou avaliação atual de mercado.
-- A trajetória eleitoral pode não conter todas as candidaturas mais antigas na
-  versão publicada dos dados. A verificação contra o TSE apontou candidaturas
-  (sobretudo de 2012) ausentes por causa de CPFs sem zero à esquerda nos
-  arquivos antigos do TSE; a correção já está em `scripts/prepare_data.py` e
-  regenerar os dados preenche essas lacunas. O patrimônio de 2022 não é afetado.
+- Candidaturas a presidente e vice em alguns anos (por exemplo 2014) têm o CPF
+  ocultado como `-1` nos arquivos do TSE e não podem ser relacionadas ao
+  histórico. Na verificação atual, apenas duas trajetórias ficam incompletas por
+  esse motivo. O patrimônio de 2022 não é afetado.

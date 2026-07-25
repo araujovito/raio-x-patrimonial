@@ -70,6 +70,10 @@ def cpf_key(row: dict) -> str:
     normalizar, o casamento por igualdade de string falha para todo candidato
     cujo CPF começa com zero, descartando candidaturas antigas legítimas.
     Preencher com zeros à esquerda até 11 dígitos reconstrói a chave correta.
+
+    Observação: candidaturas a presidente/vice em alguns anos (ex.: 2014) têm o
+    CPF ocultado como ``-1``. Essas não têm como ser relacionadas por CPF e ficam
+    de fora do histórico — é uma limitação da fonte, não deste script.
     """
     return (row.get("NR_CPF_CANDIDATO") or "").strip().zfill(11)
 
