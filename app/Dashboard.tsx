@@ -2,45 +2,23 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Categories = Record<string, number>;
-
-type ElectionEvent = {
-  year: number;
-  office: string;
-  party: string;
-  uf: string;
-  result: string;
-  elected: boolean;
-  assetsTotal: number | null;
-  assetItems: number | null;
-  assetCategories: Categories | null;
-};
-
-type Deputy = {
-  id: string;
-  name: string;
-  fullName: string;
-  uf: string;
-  party: string;
-  status: string;
-  value2022: number;
-  value2018: number | null;
-  items2022: number;
-  items2018: number | null;
-  categories2022: Categories;
-  categories2018: Categories | null;
-  previousYear: number | null;
-  previousOffice: string | null;
-  previousParty: string | null;
-  previousValue: number | null;
-  previousItems: number | null;
-  previousCategories: Categories | null;
-  priorCandidacies: number;
-  priorVictories: number;
-  history: ElectionEvent[];
-};
-
-type SortMode = "value" | "growth" | "name";
+import {
+  ALL_PARTIES,
+  ALL_STATES,
+  assetEvents,
+  candidatePhotoUrl,
+  candidateSourceUrl,
+  dedupeHistory,
+  filterDeputies,
+  median,
+  percent,
+  resultLabel,
+  sortDeputies,
+  variation,
+  type Deputy,
+  type ElectionEvent,
+  type SortMode,
+} from "./lib/deputados";
 
 const money = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -56,116 +34,6 @@ const compactMoney = new Intl.NumberFormat("pt-BR", {
 });
 
 const number = new Intl.NumberFormat("pt-BR");
-
-function variation(deputy: Deputy) {
-  if (deputy.previousValue === null || deputy.previousValue <= 0) return null;
-  return ((deputy.value2022 / deputy.previousValue) - 1) * 100;
-}
-
-function percent(value: number | null) {
-  if (value === null || !Number.isFinite(value)) return "sem comparação";
-  const signal = value > 0 ? "+" : "";
-  return `${signal}${value.toLocaleString("pt-BR", {
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-function median(values: number[]) {
-  if (!values.length) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  return sorted.length % 2
-    ? sorted[middle]
-    : (sorted[middle - 1] + sorted[middle]) / 2;
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-// O TSE usa marcadores t\u00e9cnicos (#Nulo#, #NULO, etc.) quando n\u00e3o h\u00e1 resultado
-// apurado para aquela candidatura. Exibimos um r\u00f3tulo neutro no lugar do c\u00f3digo.
-function resultLabel(result: string) {
-  const cleaned = result.replace(/#/g, "").trim();
-  if (cleaned === "" || normalize(cleaned) === "nulo") {
-    return "Sem resultado apurado";
-  }
-  return result;
-}
-
-// Algumas candidaturas aparecem duas vezes no mesmo ano/cargo por causa do 2\u00ba
-// turno (ex.: "2\u00ba Turno" e "N\u00e3o Eleito"), com o mesmo patrim\u00f4nio declarado.
-// Consolidamos por ano+cargo+partido, mantendo a entrada mais informativa:
-// preferimos a que resultou em elei\u00e7\u00e3o e, na falta dela, a que tem resultado
-// apurado (n\u00e3o t\u00e9cnico).
-function dedupeHistory(history: ElectionEvent[]) {
-  const byKey = new Map<string, ElectionEvent>();
-
-  history.forEach((event) => {
-    const key = `${event.year}-${event.office}-${event.party}`;
-    const current = byKey.get(key);
-    if (current === undefined) {
-      byKey.set(key, event);
-      return;
-    }
-    const currentIsTechnical =
-      resultLabel(current.result) === "Sem resultado apurado";
-    const eventIsTechnical =
-      resultLabel(event.result) === "Sem resultado apurado";
-    // Prioridade: eleito > resultado apurado > mant\u00e9m o atual.
-    if (
-      (event.elected && !current.elected) ||
-      (event.elected === current.elected && currentIsTechnical && !eventIsTechnical)
-    ) {
-      byKey.set(key, event);
-    }
-  });
-
-  return [...byKey.values()];
-}
-
-function candidatePhotoUrl(deputy: Deputy) {
-  return `/deputados/${deputy.id}.jpeg`;
-}
-
-// Código da Eleição Geral Federal de 2022 no sistema de Divulgação do TSE.
-const TSE_ID_ELEICAO_2022 = "2040602022";
-
-// Região de cada UF. O TSE ignora esse trecho da rota ao carregar o candidato,
-// mas informá-lo corretamente deixa a trilha de navegação (breadcrumb) coerente.
-const TSE_REGIAO_POR_UF: Record<string, string> = {
-  AC: "NORTE", AP: "NORTE", AM: "NORTE", PA: "NORTE", RO: "NORTE", RR: "NORTE", TO: "NORTE",
-  AL: "NORDESTE", BA: "NORDESTE", CE: "NORDESTE", MA: "NORDESTE", PB: "NORDESTE",
-  PE: "NORDESTE", PI: "NORDESTE", RN: "NORDESTE", SE: "NORDESTE",
-  DF: "CENTROOESTE", GO: "CENTROOESTE", MT: "CENTROOESTE", MS: "CENTROOESTE",
-  ES: "SUDESTE", MG: "SUDESTE", RJ: "SUDESTE", SP: "SUDESTE",
-  PR: "SUL", RS: "SUL", SC: "SUL",
-};
-
-// Ficha do candidato no TSE (contém abas de Bens, Eleições e Prestação de Contas).
-// Formato validado no sistema atual (v2.8.9):
-// #/candidato/{REGIAO}/{UF}/{idEleicao}/{sqCandidato}/{ano}/{UF}
-function candidateSourceUrl(deputy: Deputy) {
-  const regiao = TSE_REGIAO_POR_UF[deputy.uf] ?? "BRASIL";
-  return `https://divulgacandcontas.tse.jus.br/divulga/#/candidato/${regiao}/${deputy.uf}/${TSE_ID_ELEICAO_2022}/${deputy.id}/2022/${deputy.uf}`;
-}
-
-function assetEvents(history: ElectionEvent[]) {
-  const byYear = new Map<number, ElectionEvent>();
-
-  history.forEach((event) => {
-    if (event.assetsTotal === null || event.assetCategories === null) return;
-    const current = byYear.get(event.year);
-    if (current === undefined || event.assetsTotal > (current.assetsTotal ?? 0)) {
-      byYear.set(event.year, event);
-    }
-  });
-
-  return [...byYear.values()].sort((a, b) => b.year - a.year);
-}
 
 function AssetHistoryChart({
   history,
@@ -322,8 +190,8 @@ function AssetHistoryChart({
 
 export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [query, setQuery] = useState("");
-  const [uf, setUf] = useState("Todas");
-  const [party, setParty] = useState("Todos");
+  const [uf, setUf] = useState(ALL_STATES);
+  const [party, setParty] = useState(ALL_PARTIES);
   const [sortMode, setSortMode] = useState<SortMode>("value");
   const [onlyComparable, setOnlyComparable] = useState(false);
   const [visible, setVisible] = useState(12);
@@ -368,27 +236,14 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     .map(variation)
     .filter((value): value is number => value !== null);
 
-  const filtered = useMemo(() => {
-    const search = normalize(query.trim());
-    const result = deputies.filter((deputy) => {
-      const matchesSearch =
-        !search ||
-        normalize(`${deputy.name} ${deputy.fullName}`).includes(search);
-      return (
-        matchesSearch &&
-        (uf === "Todas" || deputy.uf === uf) &&
-        (party === "Todos" || deputy.party === party) &&
-        (!onlyComparable || deputy.previousValue !== null)
-      );
-    });
-
-    return result.sort((a, b) => {
-      if (sortMode === "name") return a.name.localeCompare(b.name, "pt-BR");
-      if (sortMode === "growth")
-        return (variation(b) ?? -Infinity) - (variation(a) ?? -Infinity);
-      return b.value2022 - a.value2022;
-    });
-  }, [deputies, onlyComparable, party, query, sortMode, uf]);
+  const filtered = useMemo(
+    () =>
+      sortDeputies(
+        filterDeputies(deputies, { query, uf, party, onlyComparable }),
+        sortMode,
+      ),
+    [deputies, onlyComparable, party, query, sortMode, uf],
+  );
 
   const selectedVariation = variation(selected);
   const maxComparison = Math.max(
@@ -406,13 +261,13 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     ([, a], [, b]) => b - a,
   );
   const hasActiveFilters = Boolean(
-    query || uf !== "Todas" || party !== "Todos" || onlyComparable || sortMode !== "value",
+    query || uf !== ALL_STATES || party !== ALL_PARTIES || onlyComparable || sortMode !== "value",
   );
 
   function resetFilters() {
     setQuery("");
-    setUf("Todas");
-    setParty("Todos");
+    setUf(ALL_STATES);
+    setParty(ALL_PARTIES);
     setOnlyComparable(false);
     setSortMode("value");
     setVisible(12);
