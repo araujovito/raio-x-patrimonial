@@ -89,11 +89,17 @@ def normalize(value: str) -> str:
 
 def category(description: str) -> str:
     text = normalize(description)
+    # Os tipos oficiais do TSE (DS_TIPO_BEM_CANDIDATO) vêm muitas vezes no
+    # plural ("Ações", "Outros bens imóveis", "Outras aplicações",
+    # "participações societárias"). Por isso usamos radicais (ex.: "imove",
+    # "aplicac", "participac") que casam singular e plural, evitando que grandes
+    # montantes caiam indevidamente em "Outros". Empresas é avaliado antes de
+    # Aplicações porque "participacoes" contém "acoes".
     rules = (
-        ("Imóveis", r"apartamento|casa|terreno|predio|sala|imovel|fazenda|gleba|benfeitoria|construcao"),
-        ("Veículos", r"veiculo|automovel|caminhao|motocicleta|aeronave|embarcacao"),
-        ("Aplicações", r"deposito|aplicacao|poupanca|fundo|acao|credito|dinheiro|moeda|cdb|rdb"),
-        ("Empresas", r"quota|quinhao|capital social|participacao societaria|empresa"),
+        ("Imóveis", r"apartament|casa|terreno|predio|sala|imove|fazenda|gleba|benfeitoria|construc|terra nua|loja|galpao|sitio|chacara|rural|garagem"),
+        ("Veículos", r"veiculo|automove|caminha|motocicleta|aeronave|embarca|barco|lancha"),
+        ("Empresas", r"quota|quinha|capital social|participac|empresa|firma|estabeleciment"),
+        ("Aplicações", r"deposito|aplicac|poupanca|fundo|acoes|credito|dinheiro|moeda|cdb|rdb|vgbl|pgbl|previdencia|capitalizac|ouro|investiment|tesouro|renda fixa"),
     )
     for label, pattern in rules:
         if re.search(pattern, text):
