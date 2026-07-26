@@ -2,7 +2,7 @@
 
 ![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-513%2F513-154e3b)
 ![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-511%2F513-154e3b)
-![Testes](https://img.shields.io/badge/testes-31%20passando-154e3b)
+![Testes](https://img.shields.io/badge/testes-38%20passando-154e3b)
 ![Fonte](https://img.shields.io/badge/fonte-TSE-154e3b)
 
 > **Dados verificados contra o TSE.** Patrimônio e número de bens conferem em
@@ -17,6 +17,11 @@ mais recente disponível.
 ## Demonstração
 
 **Versão publicada:** _em breve_
+
+Duas telas: o **explorador**, com busca, filtros e ordenação sobre os 513
+eleitos; e a **página individual de cada deputado** (`/deputado/<id>`), que pode
+ser compartilhada e traz título e descrição próprios no link — útil para apontar
+uma trajetória específica sem mandar a pessoa procurar na lista.
 
 Para rodar localmente, veja [Rodar o site](#rodar-o-site).
 
@@ -35,7 +40,7 @@ Para rodar localmente, veja [Rodar o site](#rodar-o-site).
   justifica um banco de dados
 
 **Qualidade**
-- 31 testes com o runner nativo do Node (`node:test`), sem dependências extras
+- 38 testes com o runner nativo do Node (`node:test`), sem dependências extras
 - ESLint
 - Script próprio de verificação contra a API pública do TSE
 
@@ -114,6 +119,8 @@ problemas 1 e 2 acima. Os números dos selos no topo deste README saem dela.
 - agregação e categorização de bens;
 - construção de linhas do tempo eleitorais;
 - interface responsiva com busca, filtros e ordenação;
+- páginas por deputado renderizadas no servidor, com metadados próprios;
+- cuidado com toque e leitura em telas pequenas;
 - documentação explícita das limitações da análise.
 
 ## Fonte dos dados
@@ -165,9 +172,10 @@ pnpm build
 pnpm test
 ```
 
-`pnpm test` roda o build e as 31 verificações: as regras de dados
-(`tests/deputados.test.mjs`) e a renderização da página
-(`tests/rendered-html.test.mjs`).
+`pnpm test` roda o build e as 38 verificações: as regras de dados
+(`tests/deputados.test.mjs`), a renderização do explorador
+(`tests/rendered-html.test.mjs`) e as páginas individuais
+(`tests/deputy-page.test.mjs`).
 
 ## Limitações
 
