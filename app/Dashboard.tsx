@@ -758,6 +758,11 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                 selectedYear={selectedComposition?.year ?? 2022}
                 onSelectYear={setCompositionYear}
               />
+              <p className="chart-note">
+                A escala vertical é individual: usa a maior declaração deste
+                deputado como referência. Por isso a inclinação da linha não
+                deve ser comparada entre perfis diferentes.
+              </p>
             </div>
 
             <div className="category-block">

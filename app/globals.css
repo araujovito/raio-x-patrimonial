@@ -781,6 +781,13 @@ a {
   text-transform: uppercase;
 }
 
+.chart-note {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
 .asset-chart {
   position: relative;
 }
