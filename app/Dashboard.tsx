@@ -2,191 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import DeputyProfile from "./DeputyProfile";
 import {
   ALL_PARTIES,
   ALL_STATES,
-  assetEvents,
-  candidatePhotoUrl,
-  candidateSourceUrl,
-  dedupeHistory,
+  compactMoney,
   filterDeputies,
   median,
+  number,
   percent,
-  resultLabel,
   sortDeputies,
   variation,
   type Deputy,
-  type ElectionEvent,
   type SortMode,
 } from "./lib/deputados";
-
-const money = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 0,
-});
-
-const compactMoney = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
-
-const number = new Intl.NumberFormat("pt-BR");
-
-function AssetHistoryChart({
-  history,
-  name,
-  selectedYear,
-  onSelectYear,
-}: {
-  history: ElectionEvent[];
-  name: string;
-  selectedYear: number;
-  onSelectYear: (year: number) => void;
-}) {
-  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
-  const valuesByYear = new Map<number, number>();
-
-  history.forEach((event) => {
-    if (event.assetsTotal === null) return;
-    const current = valuesByYear.get(event.year);
-    if (current === undefined || event.assetsTotal > current) {
-      valuesByYear.set(event.year, event.assetsTotal);
-    }
-  });
-
-  const points = [...valuesByYear.entries()]
-    .map(([year, value]) => ({ year, value }))
-    .sort((a, b) => a.year - b.year);
-
-  if (points.length < 2) {
-    return (
-      <div className="chart-empty">
-        Ainda não há declarações suficientes para desenhar a evolução.
-      </div>
-    );
-  }
-
-  const width = 440;
-  const height = 190;
-  const padding = { top: 28, right: 14, bottom: 34, left: 72 };
-  const plotWidth = width - padding.left - padding.right;
-  const plotHeight = height - padding.top - padding.bottom;
-  const minYear = points[0].year;
-  const maxYear = points[points.length - 1].year;
-  const maxValue = Math.max(...points.map((point) => point.value), 1);
-  const x = (year: number) =>
-    padding.left +
-    ((year - minYear) / Math.max(maxYear - minYear, 1)) * plotWidth;
-  const y = (value: number) =>
-    padding.top + plotHeight - (value / maxValue) * plotHeight;
-  const line = points
-    .map((point) => `${x(point.year)},${y(point.value)}`)
-    .join(" ");
-  const hoveredPoint = points.find((point) => point.year === hoveredYear);
-  const tooltipWidth = 148;
-  const tooltipX = hoveredPoint
-    ? Math.min(
-        Math.max(x(hoveredPoint.year) - tooltipWidth / 2, padding.left),
-        width - padding.right - tooltipWidth,
-      )
-    : 0;
-  const tooltipY = hoveredPoint
-    ? Math.max(y(hoveredPoint.value) - 50, 5)
-    : 0;
-
-  return (
-    <div className="asset-chart">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        role="img"
-        aria-label={`Evolução patrimonial declarada de ${name}. Valores nominais entre ${minYear} e ${maxYear}.`}
-      >
-        {[0, 0.5, 1].map((ratio) => {
-          const gridY = padding.top + plotHeight * ratio;
-          const gridValue = maxValue * (1 - ratio);
-          return (
-            <g key={ratio}>
-              <line
-                className="chart-grid-line"
-                x1={padding.left}
-                x2={width - padding.right}
-                y1={gridY}
-                y2={gridY}
-              />
-              <text
-                className="chart-axis-value"
-                x={padding.left - 9}
-                y={gridY + 3}
-                textAnchor="end"
-              >
-                {compactMoney.format(gridValue)}
-              </text>
-            </g>
-          );
-        })}
-        <polyline className="chart-line" points={line} />
-        {points.map((point, index) => (
-          <g
-            className={`chart-point-group ${
-              point.year === selectedYear ? "is-selected" : ""
-            }`}
-            key={point.year}
-            onPointerEnter={() => setHoveredYear(point.year)}
-            onPointerLeave={() => setHoveredYear(null)}
-            onClick={() => onSelectYear(point.year)}
-          >
-            <line
-              className="chart-guide"
-              x1={x(point.year)}
-              x2={x(point.year)}
-              y1={y(point.value)}
-              y2={padding.top + plotHeight}
-            />
-            <circle
-              className="chart-point"
-              cx={x(point.year)}
-              cy={y(point.value)}
-              r="5"
-              aria-label={`${point.year}: ${money.format(point.value)}`}
-            />
-            <text
-              className="chart-year"
-              x={x(point.year)}
-              y={height - 10}
-              textAnchor="middle"
-            >
-              {point.year}
-            </text>
-            {index === points.length - 1 && (
-              <text
-                className="chart-latest-value"
-                x={x(point.year)}
-                y={Math.max(y(point.value) - 12, 13)}
-                textAnchor="end"
-              >
-                {compactMoney.format(point.value)}
-              </text>
-            )}
-          </g>
-        ))}
-        {hoveredPoint && (
-          <g className="chart-tooltip" pointerEvents="none">
-            <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height="38" rx="3" />
-            <text x={tooltipX + 10} y={tooltipY + 15}>
-              {hoveredPoint.year}
-            </text>
-            <text x={tooltipX + 10} y={tooltipY + 29}>
-              {money.format(hoveredPoint.value)}
-            </text>
-          </g>
-        )}
-      </svg>
-    </div>
-  );
-}
 
 export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [query, setQuery] = useState("");
@@ -195,10 +24,6 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [sortMode, setSortMode] = useState<SortMode>("value");
   const [onlyComparable, setOnlyComparable] = useState(false);
   const [visible, setVisible] = useState(12);
-  const [photoFailed, setPhotoFailed] = useState(false);
-  const [compositionYear, setCompositionYear] = useState(2022);
-  const profileRef = useRef<HTMLElement>(null);
-
   const ranked = useMemo(
     () => [...deputies].sort((a, b) => b.value2022 - a.value2022),
     [deputies],
@@ -207,19 +32,20 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const selected =
     deputies.find((deputy) => deputy.id === selectedId) ?? ranked[0];
 
-  // Ao trocar de deputado, reinicia o estado específico do perfil durante a
-  // renderização (padrão recomendado pelo React) em vez de dentro de um efeito,
-  // evitando um passo de renderização extra.
-  const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
-  if (selectedId !== prevSelectedId) {
-    setPrevSelectedId(selectedId);
-    setPhotoFailed(false);
-    setCompositionYear(assetEvents(selected.history)[0]?.year ?? 2022);
-  }
-
-  // A rolagem para o topo do perfil é um efeito de DOM real e permanece aqui.
+  // Abaixo de 1040px o perfil deixa de ficar ao lado e passa a aparecer depois
+  // da lista. Sem esta rolagem, escolher um deputado no celular atualizaria um
+  // painel fora da tela, sem nenhum retorno visual. Não rola na primeira
+  // renderização, apenas quando a seleção muda.
+  const firstRender = useRef(true);
   useEffect(() => {
-    profileRef.current?.scrollTo({ top: 0 });
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    if (!window.matchMedia("(max-width: 1040px)").matches) return;
+    document
+      .getElementById("perfil")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedId]);
 
   const states = useMemo(
@@ -236,30 +62,15 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     .map(variation)
     .filter((value): value is number => value !== null);
 
+  const filters = useMemo(
+    () => ({ query, uf, party, onlyComparable }),
+    [onlyComparable, party, query, uf],
+  );
   const filtered = useMemo(
-    () =>
-      sortDeputies(
-        filterDeputies(deputies, { query, uf, party, onlyComparable }),
-        sortMode,
-      ),
-    [deputies, onlyComparable, party, query, sortMode, uf],
+    () => sortDeputies(filterDeputies(deputies, filters), sortMode),
+    [deputies, filters, sortMode],
   );
 
-  const selectedVariation = variation(selected);
-  const maxComparison = Math.max(
-    selected.value2022,
-    selected.previousValue ?? 0,
-    1,
-  );
-  const selectedAssetEvents = assetEvents(selected.history);
-  const selectedComposition =
-    selectedAssetEvents.find((event) => event.year === compositionYear) ??
-    selectedAssetEvents[0];
-  const categoryEntries = Object.entries(
-    selectedComposition?.assetCategories ?? {},
-  ).sort(
-    ([, a], [, b]) => b - a,
-  );
   const hasActiveFilters = Boolean(
     query || uf !== ALL_STATES || party !== ALL_PARTIES || onlyComparable || sortMode !== "value",
   );
@@ -510,199 +321,12 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             )}
           </div>
 
-          <aside
-            className="profile-card"
-            aria-live="polite"
-            ref={profileRef}
-          >
-            <div className="profile-header">
-              <div className="profile-avatar">
-                <span
-                  aria-hidden={!photoFailed}
-                  aria-label={
-                    photoFailed ? `Foto indisponível para ${selected.name}` : undefined
-                  }
-                >
-                  {selected.name.charAt(0)}
-                </span>
-                {!photoFailed && (
-                  <img
-                    src={candidatePhotoUrl(selected)}
-                    alt={`Foto de ${selected.name}`}
-                    onError={() => setPhotoFailed(true)}
-                  />
-                )}
-              </div>
-              <div>
-                <p>Perfil selecionado</p>
-                <h3>{selected.name}</h3>
-                <span>
-                  {selected.party} · {selected.uf} ·{" "}
-                  {selected.priorCandidacies} candidaturas anteriores
-                </span>
-                <small>Foto oficial da candidatura em 2022.</small>
-                <div className="profile-source-links">
-                  <a
-                    href={candidateSourceUrl(selected)}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Ficha no TSE ↗
-                  </a>
-                  <small className="source-hint">
-                    Inclui bens declarados, eleições e prestação de contas.
-                  </small>
-                </div>
-              </div>
-            </div>
-
-            <div className="comparison">
-              <div className="comparison-label">
-                <span>
-                  {selected.previousYear ?? "Anterior"}
-                  {selected.previousOffice
-                    ? ` · ${selected.previousOffice}`
-                    : ""}
-                </span>
-                <strong>
-                  {selected.previousValue === null
-                    ? "não comparável"
-                    : money.format(selected.previousValue)}
-                </strong>
-              </div>
-              <div className="bar-track">
-                <span
-                  className="bar bar-2018"
-                  style={{
-                    width: `${((selected.previousValue ?? 0) / maxComparison) * 100}%`,
-                  }}
-                />
-              </div>
-              <div className="comparison-label">
-                <span>2022</span>
-                <strong>{money.format(selected.value2022)}</strong>
-              </div>
-              <div className="bar-track">
-                <span
-                  className="bar bar-2022"
-                  style={{
-                    width: `${(selected.value2022 / maxComparison) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="variation-summary">
-              <span>Variação nominal</span>
-              <strong>{percent(selectedVariation)}</strong>
-              <small>
-                {selected.previousValue === null
-                  ? "Não foi localizada candidatura anterior desde 2000."
-                  : `${selected.previousItems} itens em ${selected.previousYear} → ${selected.items2022} em 2022`}
-              </small>
-            </div>
-
-            <div className="chart-block">
-              <div className="chart-heading">
-                <h4>Evolução patrimonial declarada</h4>
-                <span>valores nominais</span>
-              </div>
-              <AssetHistoryChart
-                history={selected.history}
-                name={selected.name}
-                selectedYear={selectedComposition?.year ?? 2022}
-                onSelectYear={setCompositionYear}
-              />
-              <p className="chart-note">
-                A escala vertical é individual: usa a maior declaração deste
-                deputado como referência. Por isso a inclinação da linha não
-                deve ser comparada entre perfis diferentes.
-              </p>
-            </div>
-
-            <div className="category-block">
-              <div className="composition-heading">
-                <div>
-                  <h4>Composição patrimonial</h4>
-                  <span>
-                    {selectedComposition
-                      ? `${selectedComposition.office} · ${selectedComposition.party}`
-                      : "dados indisponíveis"}
-                  </span>
-                </div>
-                <label>
-                  <span>Eleição</span>
-                  <select
-                    className="composition-select"
-                    value={selectedComposition?.year ?? ""}
-                    onChange={(event) => setCompositionYear(Number(event.target.value))}
-                  >
-                    {selectedAssetEvents.map((event) => (
-                      <option key={event.year} value={event.year}>
-                        {event.year}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {selectedComposition && (
-                <p className="composition-total">
-                  Total declarado: <strong>{money.format(selectedComposition.assetsTotal ?? 0)}</strong>
-                </p>
-              )}
-              {categoryEntries.map(([label, value]) => (
-                <div className="category-row" key={label}>
-                  <div>
-                    <span>{label}</span>
-                    <strong>{compactMoney.format(value)}</strong>
-                  </div>
-                  <div className="category-track">
-                    <span
-                      style={{
-                        width: `${selectedComposition?.assetsTotal ? (value / selectedComposition.assetsTotal) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="timeline-block">
-              <div className="timeline-heading">
-                <h4>Trajetória eleitoral</h4>
-                <span>
-                  {selected.priorVictories}{" "}
-                  {selected.priorVictories === 1
-                    ? "eleição anterior"
-                    : "eleições anteriores"}
-                </span>
-              </div>
-              <div className="timeline">
-                {dedupeHistory(selected.history).map((event, index) => (
-                  <div
-                    className={`timeline-event ${
-                      event.elected ? "timeline-elected" : ""
-                    }`}
-                    key={`${event.year}-${event.office}-${event.party}-${index}`}
-                  >
-                    <span className="timeline-year">{event.year}</span>
-                    <div>
-                      <strong>{event.office}</strong>
-                      <small>
-                        {event.party} · {event.uf}
-                      </small>
-                      <span>{resultLabel(event.result)}</span>
-                    </div>
-                    <div className="timeline-assets">
-                      {event.assetsTotal === null
-                        ? "bens indisponíveis"
-                        : compactMoney.format(event.assetsTotal)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </aside>
+          <DeputyProfile
+            key={selected.id}
+            deputy={selected}
+            live
+            permalink
+          />
         </div>
       </section>
 

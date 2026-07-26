@@ -48,6 +48,22 @@ export type SortMode = "value" | "growth" | "name";
 export const ALL_STATES = "Todas";
 export const ALL_PARTIES = "Todos";
 
+// Formatação compartilhada entre o explorador e o perfil.
+export const money = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+
+export const compactMoney = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+export const number = new Intl.NumberFormat("pt-BR");
+
 /** Variação nominal entre a declaração anterior e a de 2022, em porcentagem. */
 export function variation(deputy: Deputy) {
   if (deputy.previousValue === null || deputy.previousValue <= 0) return null;

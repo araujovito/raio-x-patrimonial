@@ -788,6 +788,66 @@ a {
   margin: 8px 0 0;
 }
 
+/* O ponto visível tem 5px de raio, pequeno demais para o toque. Este círculo
+   invisível amplia a área sensível sem alterar o desenho do gráfico. */
+.chart-hit-area {
+  fill: transparent;
+}
+
+/* Página individual do deputado (/deputado/[id]) */
+.deputy-page {
+  margin: 0 auto;
+  max-width: 720px;
+  padding: 28px 22px 60px;
+}
+
+.deputy-page-nav {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 26px;
+  padding-bottom: 14px;
+}
+
+.deputy-page-nav a {
+  color: var(--green);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.deputy-page-nav span {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.deputy-page-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 24px 0 0;
+}
+
+.deputy-page-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 36px;
+  padding-top: 14px;
+  text-transform: uppercase;
+}
+
+.profile-permalink {
+  background: var(--green);
+  border-color: var(--green) !important;
+  color: white !important;
+}
+
 .asset-chart {
   position: relative;
 }
@@ -913,7 +973,9 @@ a {
   color: var(--ink);
   font-size: 11px;
   font-weight: 800;
-  padding: 5px 8px;
+  /* Altura confortável para o toque em telas pequenas. */
+  min-height: 44px;
+  padding: 5px 10px;
 }
 
 .composition-total {
