@@ -16,7 +16,7 @@ mais recente disponível.
 
 ## Demonstração
 
-**Versão publicada:** _em breve_
+**Versão publicada:** [raio-x-patrimonial.baraujovi.workers.dev](https://raio-x-patrimonial.baraujovi.workers.dev)
 
 Duas telas: o **explorador**, com busca, filtros e ordenação sobre os 513
 eleitos; e a **página individual de cada deputado** (`/deputado/<id>`), que pode
