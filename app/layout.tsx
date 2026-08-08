@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
+import deputies from "./data/deputados.json";
 import "./globals.css";
 
 const sans = Manrope({
@@ -41,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "Raio-X Patrimonial",
       description:
-        "513 deputados eleitos. Duas eleições. Uma base pública para explorar.",
+        `${deputies.length} deputados eleitos. Duas eleições. Uma base pública para explorar.`,
       type: "website",
       locale: "pt_BR",
       images: [

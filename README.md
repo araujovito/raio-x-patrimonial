@@ -1,24 +1,28 @@
 # Raio-X Patrimonial
 
-![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-513%2F513-154e3b)
-![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-511%2F513-154e3b)
+![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-493%2F495-154e3b)
+![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-493%2F495-154e3b)
 ![Testes](https://img.shields.io/badge/testes-38%20passando-154e3b)
 ![Fonte](https://img.shields.io/badge/fonte-TSE-154e3b)
 
 > **Dados verificados contra o TSE.** Patrimônio e número de bens conferem em
-> 513/513 e a trajetória eleitoral em 511/513 dos deputados. Qualquer pessoa pode
+> 493/495 e a trajetória eleitoral em 493/495 dos deputados. Qualquer pessoa pode
 > reproduzir a verificação com `python scripts/conferir_tse.py`.
 
 Aplicação interativa para explorar a trajetória eleitoral e os bens declarados
-ao TSE pelos 513 deputados federais eleitos em 2022. O histórico cobre
-candidaturas desde 2000, e a comparação patrimonial usa a declaração anterior
-mais recente disponível.
+ao TSE pelos deputados federais eleitos em 2022 (495 conforme a situação mais
+recente do TSE — algumas candidaturas eleitas foram substituídas por suplentes
+após decisões judiciais e não constam mais como "ELEITO" na base). O histórico
+cobre candidaturas desde 2000, e a comparação patrimonial usa a declaração
+anterior mais recente disponível. Quem já registrou candidatura para 2026 tem
+essa candidatura listada na trajetória, com o patrimônio declarado agora — a
+eleição ainda não ocorreu, então aparece sem resultado.
 
 ## Demonstração
 
 **Versão publicada:** [raio-x-patrimonial.baraujovi.workers.dev](https://raio-x-patrimonial.baraujovi.workers.dev)
 
-Duas telas: o **explorador**, com busca, filtros e ordenação sobre os 513
+Duas telas: o **explorador**, com busca, filtros e ordenação sobre os 495
 eleitos; e a **página individual de cada deputado** (`/deputado/<id>`), que pode
 ser compartilhada e traz título e descrição próprios no link — útil para apontar
 uma trajetória específica sem mandar a pessoa procurar na lista.
@@ -36,7 +40,7 @@ Para rodar localmente, veja [Rodar o site](#rodar-o-site).
 
 **Dados**
 - Python (biblioteca padrão) para baixar, limpar e cruzar os microdados do TSE
-- Saída em JSON estático — o volume (513 registros, somente leitura) não
+- Saída em JSON estático — o volume (495 registros, somente leitura) não
   justifica um banco de dados
 
 **Qualidade**
@@ -105,7 +109,7 @@ reapareça.
 na palavra do autor.
 
 **Solução:** `scripts/conferir_tse.py` consulta a API pública do TSE para os
-513 deputados e compara patrimônio, número de bens e trajetória eleitoral,
+495 deputados e compara patrimônio, número de bens e trajetória eleitoral,
 gerando um relatório de divergências. A comparação de trajetória usa apenas a
 janela de anos em comum entre as duas fontes, já que os recortes são diferentes.
 
@@ -136,9 +140,11 @@ processamento. O arquivo publicado não contém CPF.
 python scripts/prepare_data.py
 ```
 
-O script baixa os conjuntos `consulta_cand` de 2000 a 2022 e
-`bem_candidato` de 2006 a 2022, seleciona os candidatos a deputado federal
-eleitos em 2022 e gera `app/data/deputados.json`.
+O script baixa os conjuntos `consulta_cand` e `bem_candidato` do TSE (o
+primeiro desde 2000, o segundo desde 2006), seleciona os candidatos a deputado
+federal eleitos em 2022 e gera `app/data/deputados.json`. Quando uma
+candidatura para 2026 já está registrada, ela entra na trajetória do deputado
+com o patrimônio declarado e sem resultado (a eleição ainda não ocorreu).
 
 ## Verificar os dados contra o TSE
 
@@ -149,13 +155,13 @@ Divulgação de Candidaturas do TSE:
 python scripts/conferir_tse.py
 ```
 
-O script compara, para cada um dos 513 deputados, o **patrimônio total** e o
+O script compara, para cada um dos 495 deputados, o **patrimônio total** e o
 **número de bens** declarados, além da **trajetória eleitoral** (na janela de
 anos em comum entre as duas fontes). Gera um relatório em
 `outputs/conferencia-513-tse.md`. Use `--limit N` para uma amostra rápida.
 
-Na última verificação, patrimônio e número de bens conferiram em **513/513** e a
-trajetória eleitoral em **511/513** (as duas exceções são candidaturas
+Na última verificação, patrimônio e número de bens conferiram em **493/495** e a
+trajetória eleitoral em **493/495** (as duas exceções são candidaturas
 presidenciais de 2014 com CPF ocultado pelo TSE — ver Limitações).
 
 ## Rodar o site

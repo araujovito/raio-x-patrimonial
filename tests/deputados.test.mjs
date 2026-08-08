@@ -31,9 +31,9 @@ function buscar(nome) {
   return encontrado;
 }
 
-test("a base tem os 513 deputados eleitos, com identificadores únicos", () => {
-  assert.equal(deputies.length, 513);
-  assert.equal(new Set(deputies.map((deputy) => deputy.id)).size, 513);
+test("a base tem os deputados eleitos, com identificadores únicos", () => {
+  assert.equal(deputies.length, 495);
+  assert.equal(new Set(deputies.map((deputy) => deputy.id)).size, 495);
 });
 
 test("busca por nome ignora acentos e maiúsculas", () => {

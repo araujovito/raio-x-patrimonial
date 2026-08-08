@@ -17,13 +17,15 @@ import {
   type SortMode,
 } from "./lib/deputados";
 
+const PAGE_SIZE = 14;
+
 export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
   const [query, setQuery] = useState("");
   const [uf, setUf] = useState(ALL_STATES);
   const [party, setParty] = useState(ALL_PARTIES);
   const [sortMode, setSortMode] = useState<SortMode>("value");
   const [onlyComparable, setOnlyComparable] = useState(false);
-  const [visible, setVisible] = useState(12);
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const ranked = useMemo(
     () => [...deputies].sort((a, b) => b.value2022 - a.value2022),
     [deputies],
@@ -81,7 +83,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
     setParty(ALL_PARTIES);
     setOnlyComparable(false);
     setSortMode("value");
-    setVisible(12);
+    setVisible(PAGE_SIZE);
   }
 
   return (
@@ -115,8 +117,9 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
           </h1>
           <p className="hero-description">
             Explore a trajetória eleitoral e compare as declarações de bens dos
-            513 deputados federais eleitos em 2022, com dados públicos do
-            Tribunal Superior Eleitoral.
+            {" "}
+            {deputies.length} deputados federais eleitos em 2022, com dados
+            públicos do Tribunal Superior Eleitoral.
           </p>
           <a className="primary-action" href="#explorar">
             Começar a explorar <span aria-hidden="true">↓</span>
@@ -124,7 +127,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
         </div>
         <div className="hero-stats" aria-label="Resumo da base">
           <div className="stat stat-featured">
-            <span className="stat-number">513</span>
+            <span className="stat-number">{deputies.length}</span>
             <span className="stat-label">eleitos analisados</span>
           </div>
           <div className="stat">
@@ -178,7 +181,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
-                  setVisible(12);
+                  setVisible(PAGE_SIZE);
                 }}
                 placeholder="Ex.: Eunício ou Atila Lins"
                 aria-describedby="search-help"
@@ -289,11 +292,10 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
                       {compactMoney.format(deputy.value2022)}
                     </strong>
                     <span
-                      className={`change ${
-                        deputyVariation !== null && deputyVariation < 0
-                          ? "negative"
-                          : ""
-                      }`}
+                      className={`change ${deputyVariation !== null && deputyVariation < 0
+                        ? "negative"
+                        : ""
+                        }`}
                     >
                       {percent(deputyVariation)}
                     </span>
@@ -314,7 +316,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
               <button
                 className="load-more"
                 type="button"
-                onClick={() => setVisible((current) => current + 12)}
+                onClick={() => setVisible((current) => current + PAGE_SIZE)}
               >
                 Mostrar mais resultados
               </button>
@@ -341,8 +343,9 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             <div>
               <h3>Recorte</h3>
               <p>
-                Foram selecionados os 513 candidatos marcados pelo TSE como
-                eleitos em 2022 e suas candidaturas desde o ano 2000.
+                Foram selecionados os {deputies.length} candidatos marcados
+                pelo TSE como eleitos em 2022 e suas candidaturas desde o ano
+                2000.
               </p>
             </div>
           </li>
