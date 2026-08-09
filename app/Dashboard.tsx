@@ -104,6 +104,7 @@ export default function Dashboard({
         <nav aria-label="Navegação principal">
           <a href="#explorar">Explorar</a>
           <Link href="/diversidade">Diversidade</Link>
+          <Link href="/leis">Leis</Link>
           <a href="#metodologia">Metodologia</a>
           <a
             className="source-link"

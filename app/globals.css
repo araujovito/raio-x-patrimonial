@@ -386,6 +386,11 @@ a {
   margin-bottom: 18px;
 }
 
+.leis-filter-grid {
+  grid-template-columns: minmax(0, 1fr) 150px 180px;
+  margin-bottom: 18px;
+}
+
 .diversity-lookup-head,
 .diversity-lookup-row {
   grid-template-columns: minmax(200px, 1fr) 110px 110px;
@@ -1662,6 +1667,65 @@ a {
   color: #ae4f3e;
 }
 
+.leis-resumo-stats {
+  margin-bottom: 32px;
+}
+
+.leis-resumo-stats .leis-stat {
+  cursor: default;
+}
+
+.leis-resumo-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.leis-resumo-block {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+
+.leis-resumo-block h3 {
+  font-size: 11px;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+}
+
+.leis-resumo-years {
+  max-height: 260px;
+}
+
+.leis-autor-row {
+  align-items: center;
+  color: var(--ink);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 130px 1fr 24px;
+  padding: 5px 0;
+}
+
+.leis-autor-row:hover .leis-autor-label {
+  color: var(--green);
+  text-decoration: underline;
+}
+
+.leis-autor-label {
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: 700;
+  gap: 1px;
+}
+
+.leis-autor-label small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+}
+
 .methodology {
   background: var(--ink);
   color: var(--white);
@@ -1871,7 +1935,8 @@ footer > a {
     padding: 40px 20px;
   }
 
-  .diversity-filter-grid {
+  .diversity-filter-grid,
+  .leis-filter-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1884,7 +1949,8 @@ footer > a {
   }
 
   .hemiciclo,
-  .mapa-body {
+  .mapa-body,
+  .leis-resumo-grid {
     grid-template-columns: 1fr;
   }
 

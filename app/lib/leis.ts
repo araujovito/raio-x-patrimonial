@@ -52,3 +52,19 @@ export function countByStatus(proposicoes: Proposicao[]) {
   });
   return counts;
 }
+
+/** app/data/leis-resumo.json (ver scripts/resumir_leis.py) -- sem ementas,
+ * pequeno o bastante para carregar de uma vez na página /leis. */
+export type LeisResumo = {
+  totalProjetos: number;
+  deputadosComDados: number;
+  porStatus: Record<StatusProposicao, number>;
+  porAno: [number, number][];
+  topAutores: {
+    id: string;
+    name: string;
+    uf: string;
+    party: string;
+    total: number;
+  }[];
+};
