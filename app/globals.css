@@ -1546,6 +1546,122 @@ a {
   margin: 0;
 }
 
+.leis-stats {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 18px;
+}
+
+.leis-stat {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.leis-stat strong {
+  font-family: var(--font-serif), serif;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.leis-stat span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.leis-stat-aprovada strong {
+  color: var(--green);
+}
+
+.leis-stat-arquivada strong {
+  color: #ae4f3e;
+}
+
+.leis-stat.is-active {
+  border-color: var(--ink);
+}
+
+.leis-years {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.leis-year-row {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 34px 1fr 24px;
+  padding: 3px 0;
+  width: 100%;
+}
+
+.leis-year-row.is-active .leis-year-label {
+  color: var(--green);
+  font-weight: 800;
+}
+
+.leis-year-label {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.leis-year-track {
+  margin: 0;
+}
+
+.leis-year-count {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.leis-reset {
+  margin-bottom: 6px;
+  padding: 0 0 12px;
+  width: auto;
+}
+
+.leis-row-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.leis-status-badge {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.leis-status-aprovada {
+  color: var(--green);
+}
+
+.leis-status-arquivada {
+  color: #ae4f3e;
+}
+
 .methodology {
   background: var(--ink);
   color: var(--white);

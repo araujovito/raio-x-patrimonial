@@ -16,7 +16,15 @@ import {
   type Deputy,
   type ElectionEvent,
 } from "./lib/deputados";
-import { proposicaoLabel, type Proposicao } from "./lib/leis";
+import {
+  countByStatus,
+  countByYear,
+  proposicaoLabel,
+  statusOf,
+  STATUS_LABEL,
+  type Proposicao,
+  type StatusProposicao,
+} from "./lib/leis";
 
 const LEIS_PAGE_SIZE = 8;
 
@@ -62,6 +70,8 @@ function useProposicoes(deputyId: string): LoadState {
 function ProjetosDeLei({ deputyId }: { deputyId: string }) {
   const state = useProposicoes(deputyId);
   const [visible, setVisible] = useState(LEIS_PAGE_SIZE);
+  const [statusFilter, setStatusFilter] = useState<StatusProposicao | null>(null);
+  const [yearFilter, setYearFilter] = useState<number | null>(null);
 
   if (state.status === "loading") {
     return (
@@ -90,6 +100,22 @@ function ProjetosDeLei({ deputyId }: { deputyId: string }) {
   }
 
   const { proposicoes } = state;
+  const byStatus = countByStatus(proposicoes);
+  const byYear = countByYear(proposicoes);
+  const maxYearCount = Math.max(...byYear.map(([, count]) => count), 1);
+
+  const filtered = proposicoes.filter((proposicao) => {
+    const matchesStatus =
+      !statusFilter || statusOf(proposicao) === statusFilter;
+    const matchesYear = !yearFilter || proposicao.ano === yearFilter;
+    return matchesStatus && matchesYear;
+  });
+
+  function resetFilters() {
+    setStatusFilter(null);
+    setYearFilter(null);
+    setVisible(LEIS_PAGE_SIZE);
+  }
 
   return (
     <div className="leis-block">
@@ -101,8 +127,61 @@ function ProjetosDeLei({ deputyId }: { deputyId: string }) {
           ou PEC)
         </span>
       </div>
+
+      <div className="leis-stats">
+        {(["aprovada", "tramitando", "arquivada"] as StatusProposicao[]).map(
+          (status) => (
+            <button
+              key={status}
+              type="button"
+              className={`leis-stat leis-stat-${status} ${
+                statusFilter === status ? "is-active" : ""
+              }`}
+              onClick={() => {
+                setStatusFilter((current) =>
+                  current === status ? null : status,
+                );
+                setVisible(LEIS_PAGE_SIZE);
+              }}
+            >
+              <strong>{byStatus[status]}</strong>
+              <span>{STATUS_LABEL[status]}</span>
+            </button>
+          ),
+        )}
+      </div>
+
+      <div className="leis-years">
+        {byYear.map(([year, count]) => (
+          <button
+            key={year}
+            type="button"
+            className={`leis-year-row ${yearFilter === year ? "is-active" : ""}`}
+            onClick={() => {
+              setYearFilter((current) => (current === year ? null : year));
+              setVisible(LEIS_PAGE_SIZE);
+            }}
+          >
+            <span className="leis-year-label">{year}</span>
+            <span className="bar-track leis-year-track">
+              <span
+                className="bar bar-2022"
+                style={{ width: `${(count / maxYearCount) * 100}%` }}
+              />
+            </span>
+            <span className="leis-year-count">{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {(statusFilter || yearFilter) && (
+        <button className="reset-filters leis-reset" type="button" onClick={resetFilters}>
+          Limpar filtros
+        </button>
+      )}
+
       <div className="leis-list">
-        {proposicoes.slice(0, visible).map((proposicao) => (
+        {filtered.slice(0, visible).map((proposicao) => (
           <a
             className="leis-row"
             key={proposicao.id}
@@ -110,12 +189,22 @@ function ProjetosDeLei({ deputyId }: { deputyId: string }) {
             target="_blank"
             rel="noreferrer"
           >
-            <strong>{proposicaoLabel(proposicao)}</strong>
+            <div className="leis-row-head">
+              <strong>{proposicaoLabel(proposicao)}</strong>
+              <span
+                className={`leis-status-badge leis-status-${statusOf(proposicao)}`}
+              >
+                {proposicao.situacao || STATUS_LABEL[statusOf(proposicao)]}
+              </span>
+            </div>
             <span>{proposicao.ementa}</span>
           </a>
         ))}
+        {filtered.length === 0 && (
+          <p className="leis-empty">Nenhum projeto com esse filtro.</p>
+        )}
       </div>
-      {visible < proposicoes.length && (
+      {visible < filtered.length && (
         <button
           className="load-more"
           type="button"
