@@ -70,7 +70,10 @@ export default async function DeputyPage({ params }: PageProps) {
       </nav>
 
       <div className="deputy-page-body">
-        <DeputyProfile deputy={deputy} eyebrow="Deputado federal eleito em 2022" />
+        <DeputyProfile
+          deputy={deputy}
+          eyebrow="Deputado federal eleito em 2022"
+        />
 
         <p className="deputy-page-note">
           Dados públicos declarados ao Tribunal Superior Eleitoral. Os valores são

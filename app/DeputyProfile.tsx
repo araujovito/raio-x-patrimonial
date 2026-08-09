@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   assetEvents,
@@ -16,6 +16,117 @@ import {
   type Deputy,
   type ElectionEvent,
 } from "./lib/deputados";
+import { proposicaoLabel, type Proposicao } from "./lib/leis";
+
+const LEIS_PAGE_SIZE = 8;
+
+// Cada deputado tem seu próprio arquivo em /leis/<id>.json (em vez de um
+// único JSON com todo mundo): o conjunto completo passa de 20 MB com as
+// ementas, grande demais para embutir no carregamento da página. Buscamos só
+// o arquivo do deputado aberto no momento, do mesmo jeito que as fotos em
+// /deputados/<id>.jpeg.
+type LoadState =
+  | { status: "loading" }
+  | { status: "empty" }
+  | { status: "ready"; proposicoes: Proposicao[] };
+
+function useProposicoes(deputyId: string): LoadState {
+  const [state, setState] = useState<LoadState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ status: "loading" });
+
+    fetch(`/leis/${deputyId}.json`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((proposicoes: Proposicao[]) => {
+        if (cancelled) return;
+        setState(
+          proposicoes.length > 0
+            ? { status: "ready", proposicoes }
+            : { status: "empty" },
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "empty" });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deputyId]);
+
+  return state;
+}
+
+function ProjetosDeLei({ deputyId }: { deputyId: string }) {
+  const state = useProposicoes(deputyId);
+  const [visible, setVisible] = useState(LEIS_PAGE_SIZE);
+
+  if (state.status === "loading") {
+    return (
+      <div className="leis-block">
+        <div className="timeline-heading">
+          <h4>Projetos de lei</h4>
+        </div>
+        <p className="leis-empty">Carregando…</p>
+      </div>
+    );
+  }
+
+  if (state.status === "empty") {
+    return (
+      <div className="leis-block">
+        <div className="timeline-heading">
+          <h4>Projetos de lei</h4>
+        </div>
+        <p className="leis-empty">
+          Sem dados de projetos de lei para este deputado. Pode ser que o
+          mandato tenha mudado de titular desde a eleição, ou que a Câmara
+          não tenha nenhum PL, PLP ou PEC de autoria dele registrado.
+        </p>
+      </div>
+    );
+  }
+
+  const { proposicoes } = state;
+
+  return (
+    <div className="leis-block">
+      <div className="timeline-heading">
+        <h4>Projetos de lei</h4>
+        <span>
+          {proposicoes.length}{" "}
+          {proposicoes.length === 1 ? "proposição" : "proposições"} (PL, PLP
+          ou PEC)
+        </span>
+      </div>
+      <div className="leis-list">
+        {proposicoes.slice(0, visible).map((proposicao) => (
+          <a
+            className="leis-row"
+            key={proposicao.id}
+            href={proposicao.uri}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <strong>{proposicaoLabel(proposicao)}</strong>
+            <span>{proposicao.ementa}</span>
+          </a>
+        ))}
+      </div>
+      {visible < proposicoes.length && (
+        <button
+          className="load-more"
+          type="button"
+          onClick={() => setVisible((current) => current + LEIS_PAGE_SIZE)}
+        >
+          Mostrar mais projetos
+        </button>
+      )}
+    </div>
+  );
+}
 
 function AssetHistoryChart({
   history,
@@ -418,6 +529,8 @@ export default function DeputyProfile({
           ))}
         </div>
       </div>
+
+      <ProjetosDeLei deputyId={deputy.id} />
     </article>
   );
 }
