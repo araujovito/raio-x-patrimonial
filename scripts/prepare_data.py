@@ -10,7 +10,7 @@ import csv
 import json
 import re
 import unicodedata
-from collections import defaultdict
+from collections import Counter, defaultdict
 from decimal import Decimal
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -20,10 +20,34 @@ from zipfile import ZipFile
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "work" / "data"
 OUTPUT = ROOT / "app" / "data" / "deputados.json"
+DIVERSITY_OUTPUT = ROOT / "app" / "data" / "diversidade.json"
+
+# IBGE/TSE tratam "negro" como a soma de pretos e pardos, categoria
+# amplamente usada em análises de representatividade racial no Brasil.
+NEGRO_RACES = {"PRETA", "PARDA"}
 
 CANDIDATE_YEARS = tuple(range(2000, 2027, 2))
 ASSET_YEARS = tuple(range(2006, 2027, 2))
 PENDING_RESULT_LABEL = "Candidatura Registrada (Aguardando Eleição)"
+
+# No arquivo do TSE, as candidaturas a cargo proporcional (Deputado Federal e
+# Estadual) no Maranhão em 2022 estão marcadas como "#NULO" -- sem resultado
+# apurado -- enquanto cargos majoritários do mesmo estado (Senador,
+# Governador) aparecem normalmente. A distribuição de cadeiras proporcionais
+# do MA em 2022 teve disputa judicial sobre o rateio entre coligações, e esse
+# arquivo nunca recebeu a situação final. Sem correção, os 18 deputados
+# federais do Maranhão desaparecem inteiros da base -- foi o que causava a
+# maior parte da diferença de 513 para 495 eleitos.
+#
+# A composição atual da Câmara (fonte independente do TSE) permite identificar
+# quem ocupa essas 18 cadeiras; o cruzamento com a candidatura de 2022 (que tem
+# o CPF) é feito pelo nome de urna. Dois nomes têm grafia diferente entre as
+# fontes.
+MARANHAO_CAMARA_NAME_OVERRIDES = {
+    "duarte jr.": "duarte",
+    "rubens pereira junior": "rubens pereira jr",
+}
+RECONCILED_RESULT_LABEL = "Eleito (Fonte: Composição Atual Da Câmara Dos Deputados)"
 
 URLS = {
     **{
@@ -85,7 +109,50 @@ def money(value: str) -> Decimal:
 
 def normalize(value: str) -> str:
     value = unicodedata.normalize("NFKD", value)
-    return "".join(char for char in value if not unicodedata.combining(char)).lower()
+    value = "".join(char for char in value if not unicodedata.combining(char)).lower()
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def fetch_camara_uf_deputies(uf: str) -> list[str]:
+    url = f"https://dadosabertos.camara.leg.br/api/v2/deputados?siglaUf={uf}&itens=100"
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    with urlopen(request, timeout=60) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    return [item["nome"] for item in payload["dados"]]
+
+
+def reconcile_maranhao(rows_2022: list[dict]) -> set[str]:
+    """CPFs dos deputados federais do MA cuja candidatura de 2022 não tem
+    resultado apurado no TSE (ver comentário de MARANHAO_CAMARA_NAME_OVERRIDES).
+    """
+    by_name = {
+        normalize(row["NM_URNA_CANDIDATO"]): row
+        for row in rows_2022
+        if row["DS_CARGO"] == "DEPUTADO FEDERAL" and row["SG_UF"] == "MA"
+    }
+
+    cpfs = set()
+    for camara_name in fetch_camara_uf_deputies("MA"):
+        key = normalize(camara_name)
+        key = MARANHAO_CAMARA_NAME_OVERRIDES.get(key, key)
+        row = by_name.get(key)
+        if row is None:
+            raise RuntimeError(
+                f"Não encontrei a candidatura de 2022 no TSE para "
+                f"{camara_name!r} (MA) -- confira MARANHAO_CAMARA_NAME_OVERRIDES."
+            )
+        cpfs.add(cpf_key(row))
+    return cpfs
+
+
+def reconciled_result(row: dict, year: int, reconciled_cpfs: set[str]) -> str | None:
+    if (
+        year == 2022
+        and row["DS_SIT_TOT_TURNO"] == "#NULO"
+        and cpf_key(row) in reconciled_cpfs
+    ):
+        return RECONCILED_RESULT_LABEL
+    return None
 
 
 def category(description: str) -> str:
@@ -113,11 +180,17 @@ def rounded(value: Decimal) -> float:
 
 
 def build_dataset() -> list[dict]:
+    rows_2022 = list(read_csv(2022, "consulta_cand"))
+    reconciled_cpfs = reconcile_maranhao(rows_2022)
+
     elected_2022 = [
         row
-        for row in read_csv(2022, "consulta_cand")
+        for row in rows_2022
         if row["DS_CARGO"] == "DEPUTADO FEDERAL"
-        and row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
+        and (
+            row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
+            or cpf_key(row) in reconciled_cpfs
+        )
     ]
     elected_by_cpf = {
         cpf_key(row): row
@@ -134,6 +207,7 @@ def build_dataset() -> list[dict]:
             if cpf not in elected_cpfs:
                 continue
             situation = row["DS_SIT_TOT_TURNO"]
+            reconciled = reconciled_result(row, year, reconciled_cpfs)
             event = {
                 "year": year,
                 "candidateId": row["SQ_CANDIDATO"],
@@ -141,11 +215,13 @@ def build_dataset() -> list[dict]:
                 "party": row["SG_PARTIDO"],
                 "uf": row["SG_UF"],
                 "result": (
-                    PENDING_RESULT_LABEL
+                    reconciled
+                    if reconciled
+                    else PENDING_RESULT_LABEL
                     if situation == "#NULO"
                     else situation.title()
                 ),
-                "elected": situation.startswith("ELEITO"),
+                "elected": reconciled is not None or situation.startswith("ELEITO"),
             }
             histories[cpf].append(event)
             candidate_owner[(year, row["SQ_CANDIDATO"])] = cpf
@@ -229,7 +305,12 @@ def build_dataset() -> list[dict]:
                 "fullName": current["NM_CANDIDATO"].title(),
                 "uf": current["SG_UF"],
                 "party": current["SG_PARTIDO"],
-                "status": current["DS_SIT_TOT_TURNO"].title(),
+                "status": (
+                    reconciled_result(current, 2022, reconciled_cpfs)
+                    or current["DS_SIT_TOT_TURNO"].title()
+                ),
+                "gender": current["DS_GENERO"].title(),
+                "race": current["DS_COR_RACA"].title(),
                 "value2022": current_event["assetsTotal"],
                 "items2022": current_event["assetItems"],
                 "categories2022": current_event["assetCategories"],
@@ -257,15 +338,66 @@ def build_dataset() -> list[dict]:
     return sorted(result, key=lambda item: item["name"])
 
 
+def summarize_diversity(rows: list[dict], reconciled_cpfs: set[str]) -> dict:
+    elected = [
+        row
+        for row in rows
+        if row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
+        or cpf_key(row) in reconciled_cpfs
+    ]
+
+    def women(subset: list[dict]) -> int:
+        return sum(1 for row in subset if row["DS_GENERO"] == "FEMININO")
+
+    def negros(subset: list[dict]) -> int:
+        return sum(1 for row in subset if row["DS_COR_RACA"] in NEGRO_RACES)
+
+    return {
+        "candidates": len(rows),
+        "elected": len(elected),
+        "womenCandidates": women(rows),
+        "womenElected": women(elected),
+        "negroCandidates": negros(rows),
+        "negroElected": negros(elected),
+        "genderCandidates": dict(Counter(row["DS_GENERO"].title() for row in rows)),
+        "genderElected": dict(Counter(row["DS_GENERO"].title() for row in elected)),
+        "raceCandidates": dict(Counter(row["DS_COR_RACA"].title() for row in rows)),
+        "raceElected": dict(Counter(row["DS_COR_RACA"].title() for row in elected)),
+    }
+
+
+def build_diversity() -> dict:
+    rows_2022 = list(read_csv(2022, "consulta_cand"))
+    reconciled_cpfs = reconcile_maranhao(rows_2022)
+    rows = [row for row in rows_2022 if row["DS_CARGO"] == "DEPUTADO FEDERAL"]
+    by_state: dict[str, list[dict]] = defaultdict(list)
+    by_party: dict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        by_state[row["SG_UF"]].append(row)
+        by_party[row["SG_PARTIDO"]].append(row)
+
+    return {
+        "national": summarize_diversity(rows, reconciled_cpfs),
+        "byState": {
+            uf: summarize_diversity(state_rows, reconciled_cpfs)
+            for uf, state_rows in sorted(by_state.items())
+        },
+        "byParty": {
+            party: summarize_diversity(party_rows, reconciled_cpfs)
+            for party, party_rows in sorted(by_party.items())
+        },
+    }
+
+
 def main() -> None:
     download_sources()
     data = build_dataset()
     if len(data) != 513:
         print(
-            f"Aviso: TSE marca {len(data)} candidaturas como ELEITO para "
-            "Deputado Federal em 2022 (esperado 513). A diferença costuma "
-            "vir de substituições por suplentes após decisões judiciais, "
-            "que o TSE não reclassifica como ELEITO nesse arquivo."
+            f"Aviso: {len(data)} deputados na base, não 513. Já corrigimos o "
+            "caso conhecido do Maranhão (ver reconcile_maranhao); se a "
+            "diferença persistir, outro estado pode ter o mesmo problema de "
+            "candidatura proporcional sem resultado apurado no arquivo do TSE."
         )
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(
@@ -281,6 +413,21 @@ def main() -> None:
         f"{with_history} com candidatura anterior"
     )
     print(OUTPUT)
+
+    diversity = build_diversity()
+    DIVERSITY_OUTPUT.write_text(
+        json.dumps(diversity, ensure_ascii=False, separators=(",", ":")),
+        encoding="utf-8",
+    )
+    national = diversity["national"]
+    print(
+        f"Diversidade: {national['womenElected']}/{national['elected']} mulheres "
+        f"eleitas ({national['womenCandidates']}/{national['candidates']} "
+        f"candidatas); {national['negroElected']}/{national['elected']} "
+        f"negros eleitos ({national['negroCandidates']}/{national['candidates']} "
+        "candidatos)"
+    )
+    print(DIVERSITY_OUTPUT)
 
 
 if __name__ == "__main__":

@@ -278,8 +278,394 @@ a {
 }
 
 .explorer,
+.diversidade,
 .methodology {
   padding: 100px clamp(24px, 7vw, 110px);
+}
+
+.diversidade {
+  background: var(--green-soft);
+}
+
+.diversity-summary {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(2, 1fr);
+  margin-bottom: 32px;
+}
+
+.diversity-card {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  padding: 26px 28px;
+}
+
+.diversity-card h3 {
+  font-family: var(--font-serif), serif;
+  font-size: 22px;
+  font-weight: 540;
+  margin: 0 0 6px;
+}
+
+.diversity-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.diversity-figure {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.diversity-figure strong {
+  font-family: var(--font-serif), serif;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.diversity-figure span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.diversity-source {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 20px 0 0;
+  max-width: 620px;
+}
+
+.diversity-teaser {
+  align-items: center;
+  background: var(--green-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 52px clamp(24px, 7vw, 110px);
+}
+
+.diversity-teaser h2 {
+  font-family: var(--font-serif), serif;
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  margin: 6px 0 10px;
+}
+
+.diversity-teaser-copy {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 480px;
+}
+
+/* Página /diversidade */
+.diversity-page {
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 28px 22px 60px;
+}
+
+.diversity-page-heading {
+  margin: 8px 0 32px;
+}
+
+.diversity-lookup {
+  margin-bottom: 70px;
+}
+
+.diversity-filter-grid {
+  grid-template-columns: minmax(0, 1fr) 180px;
+  margin-bottom: 18px;
+}
+
+.diversity-lookup-head,
+.diversity-lookup-row {
+  grid-template-columns: minmax(200px, 1fr) 110px 110px;
+}
+
+.diversity-tags {
+  display: flex;
+  gap: 8px;
+  padding: 18px 0;
+}
+
+.diversity-tag {
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.diversity-tag.is-highlighted {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.diversity-context {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+.diversity-context p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.diversity-context strong {
+  color: var(--ink);
+}
+
+.diversity-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 26px;
+}
+
+.diversity-tabs button {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 10px 16px;
+  text-transform: uppercase;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.diversity-tabs button:hover {
+  border-color: var(--green);
+}
+
+.diversity-tabs button.is-active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+/* Hemiciclo (por partido) */
+.hemiciclo {
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+}
+
+.hemiciclo-chart {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+
+.hemiciclo-chart svg {
+  width: 100%;
+}
+
+.hemiciclo-seat {
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.hemiciclo-seat:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.hemiciclo-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 10px 0 0;
+}
+
+.hemiciclo-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hemiciclo-legend {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.hemiciclo-legend-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  padding: 9px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.hemiciclo-legend-item:hover,
+.hemiciclo-legend-item.is-active {
+  background: var(--green-soft);
+}
+
+.hemiciclo-swatch {
+  border-radius: 50%;
+  flex: 0 0 12px;
+  height: 12px;
+  width: 12px;
+}
+
+.hemiciclo-legend-name {
+  flex: 1;
+  font-weight: 700;
+}
+
+.hemiciclo-legend-count {
+  color: var(--muted);
+}
+
+.hemiciclo-detail,
+.hemiciclo-hint {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  padding: 16px;
+}
+
+.hemiciclo-hint {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.hemiciclo-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hemiciclo-detail span {
+  color: var(--muted);
+}
+
+.hemiciclo-detail-party strong {
+  font-family: var(--font-serif), serif;
+  font-size: 20px;
+}
+
+.hemiciclo-detail-photo {
+  background: var(--green);
+  height: 64px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  width: 64px;
+}
+
+.hemiciclo-detail-photo img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Mapa de estados (cartograma em grade) */
+.mapa-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.mapa-controls button {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 8px 14px;
+  text-transform: uppercase;
+}
+
+.mapa-controls button.is-active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.mapa-body {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(200px, 0.6fr);
+}
+
+.mapa-svg {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  width: 100%;
+}
+
+.mapa-state {
+  cursor: pointer;
+  stroke: var(--paper-bright);
+  stroke-width: 1.2;
+  transition: filter 100ms ease;
+}
+
+.mapa-state:hover,
+.mapa-state.is-active,
+.mapa-state:focus-visible {
+  filter: brightness(0.88);
+  outline: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.mapa-detail {
+  background: var(--paper-bright);
+  border: 1px solid var(--line);
+  height: fit-content;
+  padding: 20px;
+}
+
+.mapa-detail-figure {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 20px;
+}
+
+.mapa-detail-figure strong {
+  font-family: var(--font-serif), serif;
+  font-size: 34px;
+}
+
+.mapa-detail-figure span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mapa-note {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 16px 0 0;
 }
 
 .section-heading {
@@ -1301,9 +1687,37 @@ footer > a {
   }
 
   .explorer,
+  .diversidade,
   .methodology {
     padding-bottom: 70px;
     padding-top: 70px;
+  }
+
+  .diversity-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .diversity-teaser {
+    flex-direction: column;
+    align-items: start;
+    padding: 40px 20px;
+  }
+
+  .diversity-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .diversity-lookup-head {
+    display: none;
+  }
+
+  .diversity-lookup-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .hemiciclo,
+  .mapa-body {
+    grid-template-columns: 1fr;
   }
 
   .section-heading {

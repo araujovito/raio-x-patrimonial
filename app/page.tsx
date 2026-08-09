@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Dashboard from "./Dashboard";
 import deputies from "./data/deputados.json";
+import diversity from "./data/diversidade.json";
 
 export const metadata: Metadata = {
   description:
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <Dashboard deputies={deputies} />;
+  return <Dashboard deputies={deputies} diversity={diversity} />;
 }

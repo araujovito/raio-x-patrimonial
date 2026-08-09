@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import DeputyProfile from "./DeputyProfile";
@@ -16,10 +17,17 @@ import {
   type Deputy,
   type SortMode,
 } from "./lib/deputados";
+import { share, type DiversityData } from "./lib/diversidade";
 
 const PAGE_SIZE = 14;
 
-export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
+export default function Dashboard({
+  deputies,
+  diversity,
+}: {
+  deputies: Deputy[];
+  diversity: DiversityData;
+}) {
   const [query, setQuery] = useState("");
   const [uf, setUf] = useState(ALL_STATES);
   const [party, setParty] = useState(ALL_PARTIES);
@@ -95,6 +103,7 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
         </a>
         <nav aria-label="Navegação principal">
           <a href="#explorar">Explorar</a>
+          <Link href="/diversidade">Diversidade</Link>
           <a href="#metodologia">Metodologia</a>
           <a
             className="source-link"
@@ -330,6 +339,23 @@ export default function Dashboard({ deputies }: { deputies: Deputy[] }) {
             permalink
           />
         </div>
+      </section>
+
+      <section className="diversity-teaser">
+        <div>
+          <p className="eyebrow">Quem chega, quem concorre</p>
+          <h2>Representatividade na Câmara</h2>
+          <p className="diversity-teaser-copy">
+            {share(diversity.national.womenElected, diversity.national.elected)}{" "}
+            dos eleitos são mulheres e{" "}
+            {share(diversity.national.negroElected, diversity.national.elected)}{" "}
+            são negros. Busque um deputado e veja como o estado dele se
+            compara.
+          </p>
+        </div>
+        <Link className="primary-action" href="/diversidade">
+          Ver representatividade <span aria-hidden="true">→</span>
+        </Link>
       </section>
 
       <section className="methodology" id="metodologia">

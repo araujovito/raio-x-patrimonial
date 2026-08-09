@@ -25,6 +25,8 @@ export type Deputy = {
   uf: string;
   party: string;
   status: string;
+  gender: string;
+  race: string;
   value2022: number;
   value2018: number | null;
   items2022: number;
