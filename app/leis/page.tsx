@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import BuscaProjetosDeLei from "../BuscaProjetosDeLei";
 import ResumoLeis from "../ResumoLeis";
-import deputiesData from "../data/deputados.json";
+import deputiesData from "../data/deputados-2022.json";
 import leisResumoData from "../data/leis-resumo.json";
 import type { Deputy } from "../lib/deputados";
 import type { LeisResumo } from "../lib/leis";

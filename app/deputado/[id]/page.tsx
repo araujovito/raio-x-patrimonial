@@ -3,22 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import DeputyProfile from "../../DeputyProfile";
-import deputiesData from "../../data/deputados.json";
 import { money, percent, variation, type Deputy } from "../../lib/deputados";
-
-const deputies = deputiesData as unknown as Deputy[];
+import { allDeputies, findDeputyAnywhere } from "../../lib/legislaturas";
 
 type PageProps = { params: Promise<{ id: string }> };
 
-function findDeputy(id: string) {
-  return deputies.find((deputy) => deputy.id === id);
-}
+const findDeputy = findDeputyAnywhere;
 
 function describe(deputy: Deputy) {
   const nominal = variation(deputy);
   const base = `${deputy.fullName} (${deputy.party}-${deputy.uf}) declarou ${money.format(
-    deputy.value2022,
-  )} ao TSE na eleição de 2022`;
+    deputy.value,
+  )} ao TSE na eleição de ${deputy.electionYear}`;
 
   return nominal === null
     ? `${base}. Não foi localizada declaração anterior para comparação.`
@@ -27,7 +23,7 @@ function describe(deputy: Deputy) {
 
 // Uma página por deputado eleito, geradas no build.
 export function generateStaticParams() {
-  return deputies.map((deputy) => ({ id: deputy.id }));
+  return allDeputies().map((deputy) => ({ id: deputy.id }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -72,7 +68,7 @@ export default async function DeputyPage({ params }: PageProps) {
       <div className="deputy-page-body">
         <DeputyProfile
           deputy={deputy}
-          eyebrow="Deputado federal eleito em 2022"
+          eyebrow={`Deputado federal eleito em ${deputy.electionYear}`}
         />
 
         <p className="deputy-page-note">

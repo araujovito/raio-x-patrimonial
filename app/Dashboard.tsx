@@ -9,6 +9,8 @@ import {
   ALL_STATES,
   compactMoney,
   filterDeputies,
+  LEGISLATURE_YEARS,
+  legislatureHref,
   median,
   number,
   percent,
@@ -28,6 +30,7 @@ export default function Dashboard({
   deputies: Deputy[];
   diversity: DiversityData;
 }) {
+  const year = deputies[0].electionYear;
   const [query, setQuery] = useState("");
   const [uf, setUf] = useState(ALL_STATES);
   const [party, setParty] = useState(ALL_PARTIES);
@@ -35,7 +38,7 @@ export default function Dashboard({
   const [onlyComparable, setOnlyComparable] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
   const ranked = useMemo(
-    () => [...deputies].sort((a, b) => b.value2022 - a.value2022),
+    () => [...deputies].sort((a, b) => b.value - a.value),
     [deputies],
   );
   const [selectedId, setSelectedId] = useState(ranked[0].id);
@@ -103,12 +106,14 @@ export default function Dashboard({
         </a>
         <nav aria-label="Navegação principal">
           <a href="#explorar">Explorar</a>
-          <Link href="/diversidade">Diversidade</Link>
+          <Link href={year === LEGISLATURE_YEARS[0] ? "/diversidade" : `/diversidade/${year}`}>
+            Diversidade
+          </Link>
           <Link href="/leis">Leis</Link>
           <a href="#metodologia">Metodologia</a>
           <a
             className="source-link"
-            href="https://dadosabertos.tse.jus.br/dataset/candidatos-2022"
+            href={`https://dadosabertos.tse.jus.br/dataset/candidatos-${year}`}
             target="_blank"
             rel="noreferrer"
           >
@@ -119,7 +124,7 @@ export default function Dashboard({
 
       <section className="hero" id="inicio">
         <div className="hero-copy">
-          <p className="eyebrow">Trajetórias de 2000 → 2022</p>
+          <p className="eyebrow">Trajetórias de 2000 → {year}</p>
           <h1>
             O patrimônio
             <br />
@@ -128,12 +133,23 @@ export default function Dashboard({
           <p className="hero-description">
             Explore a trajetória eleitoral e compare as declarações de bens dos
             {" "}
-            {deputies.length} deputados federais eleitos em 2022, com dados
+            {deputies.length} deputados federais eleitos em {year}, com dados
             públicos do Tribunal Superior Eleitoral.
           </p>
           <a className="primary-action" href="#explorar">
             Começar a explorar <span aria-hidden="true">↓</span>
           </a>
+          <nav className="legislature-switch" aria-label="Eleição exibida">
+            {LEGISLATURE_YEARS.map((option) => (
+              <Link
+                key={option}
+                href={legislatureHref(option)}
+                aria-current={option === year ? "page" : undefined}
+              >
+                Eleitos em {option}
+              </Link>
+            ))}
+          </nav>
         </div>
         <div className="hero-stats" aria-label="Resumo da base">
           <div className="stat stat-featured">
@@ -146,9 +162,9 @@ export default function Dashboard({
           </div>
           <div className="stat">
             <span className="stat-number">
-              {compactMoney.format(median(deputies.map((d) => d.value2022)))}
+              {compactMoney.format(median(deputies.map((d) => d.value)))}
             </span>
-            <span className="stat-label">mediana declarada em 2022</span>
+            <span className="stat-label">mediana declarada em {year}</span>
           </div>
           <div className="stat">
             <span className="stat-number">
@@ -164,7 +180,7 @@ export default function Dashboard({
           i
         </span>
         <p>
-          <strong>Leia os números com contexto.</strong> Comparamos 2022 com a
+          <strong>Leia os números com contexto.</strong> Comparamos {year} com a
           declaração anterior mais recente de cada candidato. Os valores não são
           uma auditoria, e a variação nominal não desconta a inflação.
         </p>
@@ -238,7 +254,7 @@ export default function Dashboard({
               value={sortMode}
               onChange={(event) => setSortMode(event.target.value as SortMode)}
             >
-              <option value="value">Maior valor em 2022</option>
+              <option value="value">Maior valor em {year}</option>
               <option value="growth">Maior variação</option>
               <option value="name">Nome A–Z</option>
             </select>
@@ -272,7 +288,7 @@ export default function Dashboard({
           <div className="results-card">
             <div className="table-head">
               <span>Deputado</span>
-              <span>Declarado em 2022</span>
+              <span>Declarado em {year}</span>
               <span>Variação anterior</span>
             </div>
             <div className="result-list">
@@ -299,7 +315,7 @@ export default function Dashboard({
                       </span>
                     </span>
                     <strong className="row-money">
-                      {compactMoney.format(deputy.value2022)}
+                      {compactMoney.format(deputy.value)}
                     </strong>
                     <span
                       className={`change ${deputyVariation !== null && deputyVariation < 0
@@ -371,7 +387,7 @@ export default function Dashboard({
               <h3>Recorte</h3>
               <p>
                 Foram selecionados os {deputies.length} candidatos marcados
-                pelo TSE como eleitos em 2022 e suas candidaturas desde o ano
+                pelo TSE como eleitos em {year} e suas candidaturas desde o ano
                 2000.
               </p>
             </div>
@@ -416,18 +432,18 @@ export default function Dashboard({
           </div>
           <div className="source-buttons">
             <a
-              href="https://dadosabertos.tse.jus.br/dataset/candidatos-2018"
+              href={`https://dadosabertos.tse.jus.br/dataset/candidatos-${year - 4}`}
               target="_blank"
               rel="noreferrer"
             >
-              Dados de 2018 ↗
+              Dados de {year - 4} ↗
             </a>
             <a
-              href="https://dadosabertos.tse.jus.br/dataset/candidatos-2022"
+              href={`https://dadosabertos.tse.jus.br/dataset/candidatos-${year}`}
               target="_blank"
               rel="noreferrer"
             >
-              Dados de 2022 ↗
+              Dados de {year} ↗
             </a>
           </div>
         </div>

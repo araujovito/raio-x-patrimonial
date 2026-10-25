@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
-import deputies from "./data/deputados.json";
+import { latestLegislature } from "./lib/legislaturas";
 import "./globals.css";
 
 const sans = Manrope({
@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s | Raio-X Patrimonial",
     },
     description:
-      "Visualização independente da trajetória eleitoral e dos bens declarados ao TSE pelos deputados federais eleitos em 2022.",
+      "Visualização independente da trajetória eleitoral e dos bens declarados ao TSE pelos deputados federais eleitos em 2022 e 2026.",
     icons: {
       icon: "/favicon.svg",
       shortcut: "/favicon.svg",
@@ -42,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "Raio-X Patrimonial",
       description:
-        `${deputies.length} deputados eleitos. Duas eleições. Uma base pública para explorar.`,
+        `${latestLegislature.deputies.length} deputados eleitos. Duas eleições. Uma base pública para explorar.`,
       type: "website",
       locale: "pt_BR",
       images: [

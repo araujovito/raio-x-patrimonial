@@ -27,12 +27,10 @@ export type Deputy = {
   status: string;
   gender: string;
   race: string;
-  value2022: number;
-  value2018: number | null;
-  items2022: number;
-  items2018: number | null;
-  categories2022: Categories;
-  categories2018: Categories | null;
+  electionYear: number;
+  value: number;
+  items: number;
+  categories: Categories;
   previousYear: number | null;
   previousOffice: string | null;
   previousParty: string | null;
@@ -66,10 +64,10 @@ export const compactMoney = new Intl.NumberFormat("pt-BR", {
 
 export const number = new Intl.NumberFormat("pt-BR");
 
-/** Variação nominal entre a declaração anterior e a de 2022, em porcentagem. */
+/** Variação nominal entre a declaração anterior e a da eleição do deputado, em porcentagem. */
 export function variation(deputy: Deputy) {
   if (deputy.previousValue === null || deputy.previousValue <= 0) return null;
-  return (deputy.value2022 / deputy.previousValue - 1) * 100;
+  return (deputy.value / deputy.previousValue - 1) * 100;
 }
 
 export function percent(value: number | null) {
@@ -166,8 +164,19 @@ export function candidatePhotoUrl(deputy: Deputy) {
   return `/deputados/${deputy.id}.jpeg`;
 }
 
-// Código da Eleição Geral Federal de 2022 no sistema de Divulgação do TSE.
-const TSE_ID_ELEICAO_2022 = "2040602022";
+// Eleições exibidas, da mais recente para a mais antiga. A primeira é a padrão
+// (página inicial); as demais ficam em /eleicao/<ano>.
+export const LEGISLATURE_YEARS = [2026, 2022] as const;
+export const LATEST_YEAR = LEGISLATURE_YEARS[0];
+
+export function legislatureHref(year: number) {
+  return year === LATEST_YEAR ? "/" : `/eleicao/${year}`;
+}
+
+// Código de cada eleição geral federal no sistema de Divulgação do TSE. O de
+// 2026 não está aqui de propósito: a API do sistema não pôde ser consultada
+// para confirmá-lo, e um código chutado geraria links quebrados.
+const TSE_ID_ELEICAO: Record<number, string> = { 2022: "2040602022" };
 
 // Região de cada UF. O TSE ignora esse trecho da rota ao carregar o candidato,
 // mas informá-lo corretamente deixa a trilha de navegação (breadcrumb) coerente.
@@ -184,8 +193,10 @@ const TSE_REGIAO_POR_UF: Record<string, string> = {
 // Formato validado no sistema atual (v2.8.9):
 // #/candidato/{REGIAO}/{UF}/{idEleicao}/{sqCandidato}/{ano}/{UF}
 export function candidateSourceUrl(deputy: Deputy) {
+  const idEleicao = TSE_ID_ELEICAO[deputy.electionYear];
+  if (idEleicao === undefined) return null;
   const regiao = TSE_REGIAO_POR_UF[deputy.uf] ?? "BRASIL";
-  return `https://divulgacandcontas.tse.jus.br/divulga/#/candidato/${regiao}/${deputy.uf}/${TSE_ID_ELEICAO_2022}/${deputy.id}/2022/${deputy.uf}`;
+  return `https://divulgacandcontas.tse.jus.br/divulga/#/candidato/${regiao}/${deputy.uf}/${idEleicao}/${deputy.id}/${deputy.electionYear}/${deputy.uf}`;
 }
 
 export type DeputyFilters = {
@@ -222,6 +233,6 @@ export function sortDeputies(deputies: Deputy[], mode: SortMode) {
     if (mode === "name") return a.name.localeCompare(b.name, "pt-BR");
     if (mode === "growth")
       return (variation(b) ?? -Infinity) - (variation(a) ?? -Infinity);
-    return b.value2022 - a.value2022;
+    return b.value - a.value;
   });
 }

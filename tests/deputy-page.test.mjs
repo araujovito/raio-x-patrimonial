@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import deputies from "../app/data/deputados.json" with { type: "json" };
+import deputies from "../app/data/deputados-2022.json" with { type: "json" };
 import {
   candidateSourceUrl,
   money,
@@ -60,8 +60,8 @@ test("a descrição da página resume os dados daquele deputado", async () => {
     "a descrição deveria citar partido e estado",
   );
   assert.ok(
-    description.includes(money.format(exemplo.value2022).replace(/ /g, " ")) ||
-      description.includes(money.format(exemplo.value2022)),
+    description.includes(money.format(exemplo.value).replace(/ /g, " ")) ||
+      description.includes(money.format(exemplo.value)),
     "a descrição deveria citar o patrimônio declarado",
   );
 });
@@ -83,7 +83,7 @@ test("identificador inexistente devolve 404", async () => {
 });
 
 test("o explorador oferece o link permanente do deputado aberto", async () => {
-  const response = await fetchPath("/");
+  const response = await fetchPath("/eleicao/2022");
   const html = await response.text();
 
   assert.ok(

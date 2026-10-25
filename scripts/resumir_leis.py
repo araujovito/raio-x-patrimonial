@@ -21,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LEIS_DIR = ROOT / "public" / "leis"
-DEPUTADOS = ROOT / "app" / "data" / "deputados.json"
+DEPUTADOS = ROOT / "app" / "data" / "deputados-2022.json"
 OUTPUT = ROOT / "app" / "data" / "leis-resumo.json"
 
 TOP_N = 20

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import deputies from "../app/data/deputados.json" with { type: "json" };
+import deputies from "../app/data/deputados-2022.json" with { type: "json" };
+import deputies2026 from "../app/data/deputados-2026.json" with { type: "json" };
 import {
   ALL_PARTIES,
   ALL_STATES,
@@ -122,7 +123,7 @@ test("filtro de comparáveis remove quem não tem declaração anterior", () => 
 
 test("ordenação por patrimônio, nome e variação", () => {
   const porValor = sortDeputies(deputies, "value");
-  assert.ok(porValor[0].value2022 >= porValor[porValor.length - 1].value2022);
+  assert.ok(porValor[0].value >= porValor[porValor.length - 1].value);
 
   const porNome = sortDeputies(deputies, "name");
   assert.equal(
@@ -149,12 +150,12 @@ test("deputado sem declaração anterior não gera variação", () => {
 });
 
 test("variação nominal é calculada corretamente", () => {
-  const dobrou = { value2022: 200, previousValue: 100 };
+  const dobrou = { value: 200, previousValue: 100 };
   assert.equal(variation(dobrou), 100);
   assert.equal(percent(variation(dobrou)), "+100%");
 
   // Patrimônio anterior zerado não permite comparação percentual.
-  assert.equal(variation({ value2022: 50, previousValue: 0 }), null);
+  assert.equal(variation({ value: 50, previousValue: 0 }), null);
 });
 
 test("link do TSE aponta para a ficha do candidato, com região e UF corretas", () => {
@@ -174,9 +175,54 @@ test("todo deputado gera um link do TSE válido e com sua própria identificaç�
       url.startsWith("https://divulgacandcontas.tse.jus.br/divulga/#/candidato/"),
       `URL inesperada para ${deputy.name}`,
     );
-    assert.ok(url.includes(`/${deputy.id}/2022/${deputy.uf}`));
+    assert.ok(url.includes(`/${deputy.id}/${deputy.electionYear}/${deputy.uf}`));
     assert.doesNotMatch(url, /BRASIL/, `UF sem região mapeada: ${deputy.uf}`);
   }
+});
+
+// Cadeiras por UF fixadas em lei (LC 78/1993, atualizada pela LC 161/2018),
+// iguais em 2022 e 2026. É a conferência independente do resultado do TSE:
+// um estado sem resultado apurado no arquivo (como o MA em 2022) não fecharia.
+const CADEIRAS = {
+  AC: 8, AL: 9, AM: 8, AP: 8, BA: 39, CE: 22, DF: 8, ES: 10, GO: 17, MA: 18,
+  MG: 53, MS: 8, MT: 8, PA: 17, PB: 12, PE: 25, PI: 10, PR: 30, RJ: 46, RN: 8,
+  RO: 8, RR: 8, RS: 31, SC: 16, SE: 8, SP: 70, TO: 8,
+};
+
+function contarPorUf(lista) {
+  const contagem = {};
+  for (const deputy of lista) contagem[deputy.uf] = (contagem[deputy.uf] ?? 0) + 1;
+  return contagem;
+}
+
+for (const [ano, lista] of [[2022, deputies], [2026, deputies2026]]) {
+  test(`${ano}: 513 eleitos, ids únicos e cadeiras de cada estado conferem com a lei`, () => {
+    assert.equal(lista.length, 513);
+    assert.equal(new Set(lista.map((deputy) => deputy.id)).size, 513);
+    assert.ok(lista.every((deputy) => deputy.electionYear === ano));
+    assert.deepEqual(contarPorUf(lista), CADEIRAS);
+  });
+}
+
+test("ids do TSE não se repetem entre as duas eleições (a página do deputado depende disso)", () => {
+  const de2022 = new Set(deputies.map((deputy) => deputy.id));
+  assert.ok(deputies2026.every((deputy) => !de2022.has(deputy.id)));
+});
+
+test("2026: patrimônio declarado é lido do ano da eleição e histórico inclui 2022", () => {
+  const comAnterior = deputies2026.filter((deputy) => deputy.previousValue !== null);
+  assert.ok(comAnterior.length > 400, "a maioria tem declaração anterior");
+  assert.ok(
+    comAnterior.every((deputy) => deputy.previousYear < 2026),
+    "a declaração anterior precisa ser de antes de 2026",
+  );
+  assert.ok(
+    deputies2026.every((deputy) => deputy.history.every((event) => event.year <= 2026)),
+  );
+});
+
+test("2026: sem código de eleição confirmado, não inventa link para a ficha do TSE", () => {
+  assert.equal(candidateSourceUrl(deputies2026[0]), null);
 });
 
 test("caminho da foto usa o identificador do candidato", () => {

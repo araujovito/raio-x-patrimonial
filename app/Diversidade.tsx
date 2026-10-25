@@ -4,7 +4,13 @@ import {
   type DiversityData,
 } from "./lib/diversidade";
 
-export default function Diversidade({ data }: { data: DiversityData }) {
+export default function Diversidade({
+  data,
+  year,
+}: {
+  data: DiversityData;
+  year: number;
+}) {
   const { national } = data;
 
   return (
@@ -16,7 +22,7 @@ export default function Diversidade({ data }: { data: DiversityData }) {
         </div>
         <p>
           Recorte de gênero e raça entre quem concorreu e quem se elegeu para
-          Deputado Federal em 2022, com dados autodeclarados ao TSE.
+          Deputado Federal em {year}, com dados autodeclarados ao TSE.
         </p>
       </div>
 

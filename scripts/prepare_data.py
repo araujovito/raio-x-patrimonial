@@ -19,8 +19,22 @@ from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "work" / "data"
-OUTPUT = ROOT / "app" / "data" / "deputados.json"
-DIVERSITY_OUTPUT = ROOT / "app" / "data" / "diversidade.json"
+DATA_DIR = ROOT / "app" / "data"
+
+# Eleições gerais cujos eleitos para Deputado Federal o site exibe. Cada uma
+# vira um par de arquivos: deputados-<ano>.json e diversidade-<ano>.json.
+LEGISLATURE_YEARS = (2022, 2026)
+
+# Cadeiras por estado, fixadas por lei (LC 78/1993, atualizada pela LC 161/2018)
+# e iguais em 2022 e 2026. Serve como conferência independente do resultado:
+# se um arquivo do TSE vier com um estado sem resultado apurado (como o
+# Maranhão em 2022), a contagem por UF não fecha.
+SEATS_BY_UF = {
+    "AC": 8, "AL": 9, "AM": 8, "AP": 8, "BA": 39, "CE": 22, "DF": 8, "ES": 10,
+    "GO": 17, "MA": 18, "MG": 53, "MS": 8, "MT": 8, "PA": 17, "PB": 12,
+    "PE": 25, "PI": 10, "PR": 30, "RJ": 46, "RN": 8, "RO": 8, "RR": 8,
+    "RS": 31, "SC": 16, "SE": 8, "SP": 70, "TO": 8,
+}
 
 # IBGE/TSE tratam "negro" como a soma de pretos e pardos, categoria
 # amplamente usada em análises de representatividade racial no Brasil.
@@ -146,6 +160,7 @@ def reconcile_maranhao(rows_2022: list[dict]) -> set[str]:
 
 
 def reconciled_result(row: dict, year: int, reconciled_cpfs: set[str]) -> str | None:
+    # A reconciliação do Maranhão vale só para a eleição de 2022.
     if (
         year == 2022
         and row["DS_SIT_TOT_TURNO"] == "#NULO"
@@ -179,13 +194,33 @@ def rounded(value: Decimal) -> float:
     return float(value.quantize(Decimal("0.01")))
 
 
-def build_dataset() -> list[dict]:
-    rows_2022 = list(read_csv(2022, "consulta_cand"))
-    reconciled_cpfs = reconcile_maranhao(rows_2022)
+def reconciled_cpfs_for(election_year: int, rows: list[dict]) -> set[str]:
+    """Reconciliação do Maranhão, só enquanto o arquivo do TSE precisar dela.
 
-    elected_2022 = [
+    Em 2025 o arquivo de 2022 trazia o MA inteiro como "#NULO". O TSE já
+    corrigiu isso: se houver qualquer eleito proporcional do MA no arquivo, a
+    composição atual da Câmara não entra, porque ela inclui suplentes em
+    exercício e deixa de fora quem se elegeu e saiu (ver Hildo Rocha e Roseana
+    Sarney), e a contagem passaria de 18 para 19.
+    """
+    if election_year != 2022:
+        return set()
+    ma_resolved = any(
+        row["DS_CARGO"] == "DEPUTADO FEDERAL"
+        and row["SG_UF"] == "MA"
+        and row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
+        for row in rows
+    )
+    return set() if ma_resolved else reconcile_maranhao(rows)
+
+
+def build_dataset(election_year: int) -> list[dict]:
+    rows_current = list(read_csv(election_year, "consulta_cand"))
+    reconciled_cpfs = reconciled_cpfs_for(election_year, rows_current)
+
+    elected_current = [
         row
-        for row in rows_2022
+        for row in rows_current
         if row["DS_CARGO"] == "DEPUTADO FEDERAL"
         and (
             row["DS_SIT_TOT_TURNO"].startswith("ELEITO")
@@ -194,7 +229,7 @@ def build_dataset() -> list[dict]:
     ]
     elected_by_cpf = {
         cpf_key(row): row
-        for row in elected_2022
+        for row in elected_current
     }
     elected_cpfs = set(elected_by_cpf)
 
@@ -202,6 +237,8 @@ def build_dataset() -> list[dict]:
     candidate_owner: dict[tuple[int, str], str] = {}
 
     for year in CANDIDATE_YEARS:
+        if year > election_year:
+            continue
         for row in read_csv(year, "consulta_cand"):
             cpf = cpf_key(row)
             if cpf not in elected_cpfs:
@@ -233,6 +270,8 @@ def build_dataset() -> list[dict]:
     )
 
     for year in ASSET_YEARS:
+        if year > election_year:
+            continue
         for row in read_csv(year, "bem_candidato"):
             key = (year, row["SQ_CANDIDATO"])
             if key not in candidate_owner:
@@ -265,26 +304,17 @@ def build_dataset() -> list[dict]:
             key=lambda event: (event["year"], event["office"]),
             reverse=True,
         )
-        prior_events = [event for event in events if event["year"] < 2022]
+        prior_events = [event for event in events if event["year"] < election_year]
         prior_asset_events = [
             event
             for event in prior_events
             if event["assetsTotal"] is not None
         ]
         previous = prior_asset_events[0] if prior_asset_events else None
-        federal_2018 = next(
-            (
-                event
-                for event in events
-                if event["year"] == 2018
-                and event["office"] == "Deputado Federal"
-            ),
-            None,
-        )
         current_event = next(
             event
             for event in events
-            if event["year"] == 2022
+            if event["year"] == election_year
             and event["candidateId"] == current_id
         )
 
@@ -306,19 +336,15 @@ def build_dataset() -> list[dict]:
                 "uf": current["SG_UF"],
                 "party": current["SG_PARTIDO"],
                 "status": (
-                    reconciled_result(current, 2022, reconciled_cpfs)
+                    reconciled_result(current, election_year, reconciled_cpfs)
                     or current["DS_SIT_TOT_TURNO"].title()
                 ),
                 "gender": current["DS_GENERO"].title(),
                 "race": current["DS_COR_RACA"].title(),
-                "value2022": current_event["assetsTotal"],
-                "items2022": current_event["assetItems"],
-                "categories2022": current_event["assetCategories"],
-                "value2018": federal_2018["assetsTotal"] if federal_2018 else None,
-                "items2018": federal_2018["assetItems"] if federal_2018 else None,
-                "categories2018": (
-                    federal_2018["assetCategories"] if federal_2018 else None
-                ),
+                "electionYear": election_year,
+                "value": current_event["assetsTotal"],
+                "items": current_event["assetItems"],
+                "categories": current_event["assetCategories"],
                 "previousYear": previous["year"] if previous else None,
                 "previousOffice": previous["office"] if previous else None,
                 "previousParty": previous["party"] if previous else None,
@@ -366,10 +392,10 @@ def summarize_diversity(rows: list[dict], reconciled_cpfs: set[str]) -> dict:
     }
 
 
-def build_diversity() -> dict:
-    rows_2022 = list(read_csv(2022, "consulta_cand"))
-    reconciled_cpfs = reconcile_maranhao(rows_2022)
-    rows = [row for row in rows_2022 if row["DS_CARGO"] == "DEPUTADO FEDERAL"]
+def build_diversity(election_year: int) -> dict:
+    rows_current = list(read_csv(election_year, "consulta_cand"))
+    reconciled_cpfs = reconciled_cpfs_for(election_year, rows_current)
+    rows = [row for row in rows_current if row["DS_CARGO"] == "DEPUTADO FEDERAL"]
     by_state: dict[str, list[dict]] = defaultdict(list)
     by_party: dict[str, list[dict]] = defaultdict(list)
     for row in rows:
@@ -389,45 +415,59 @@ def build_diversity() -> dict:
     }
 
 
+def check_seats(data: list[dict]) -> list[str]:
+    """Estados cuja contagem de eleitos difere das cadeiras previstas em lei."""
+    elected = Counter(item["uf"] for item in data)
+    return [
+        f"{uf}: {elected.get(uf, 0)} eleitos, {seats} cadeiras"
+        for uf, seats in SEATS_BY_UF.items()
+        if elected.get(uf, 0) != seats
+    ]
+
+
 def main() -> None:
     download_sources()
-    data = build_dataset()
-    if len(data) != 513:
-        print(
-            f"Aviso: {len(data)} deputados na base, não 513. Já corrigimos o "
-            "caso conhecido do Maranhão (ver reconcile_maranhao); se a "
-            "diferença persistir, outro estado pode ter o mesmo problema de "
-            "candidatura proporcional sem resultado apurado no arquivo do TSE."
+    for election_year in LEGISLATURE_YEARS:
+        data = build_dataset(election_year)
+        mismatches = check_seats(data)
+        if len(data) != 513 or mismatches:
+            print(
+                f"Aviso ({election_year}): {len(data)} deputados na base, não "
+                "513. Divergências por estado: "
+                + ("; ".join(mismatches) or "nenhuma")
+                + ". Outro estado pode ter candidatura proporcional sem "
+                "resultado apurado no arquivo do TSE (ver reconcile_maranhao)."
+            )
+        output = DATA_DIR / f"deputados-{election_year}.json"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(data, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
         )
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(
-        json.dumps(data, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
-    comparable_2018 = sum(item["value2018"] is not None for item in data)
-    comparable_previous = sum(item["previousValue"] is not None for item in data)
-    with_history = sum(item["priorCandidacies"] > 0 for item in data)
-    print(
-        f"{len(data)} deputados; {comparable_2018} comparáveis com 2018; "
-        f"{comparable_previous} com declaração anterior; "
-        f"{with_history} com candidatura anterior"
-    )
-    print(OUTPUT)
+        comparable_previous = sum(item["previousValue"] is not None for item in data)
+        with_history = sum(item["priorCandidacies"] > 0 for item in data)
+        print(
+            f"{election_year}: {len(data)} deputados; {comparable_previous} com "
+            f"declaração anterior; {with_history} com candidatura anterior"
+        )
+        print(output)
 
-    diversity = build_diversity()
-    DIVERSITY_OUTPUT.write_text(
-        json.dumps(diversity, ensure_ascii=False, separators=(",", ":")),
-        encoding="utf-8",
-    )
-    national = diversity["national"]
-    print(
-        f"Diversidade: {national['womenElected']}/{national['elected']} mulheres "
-        f"eleitas ({national['womenCandidates']}/{national['candidates']} "
-        f"candidatas); {national['negroElected']}/{national['elected']} "
-        f"negros eleitos ({national['negroCandidates']}/{national['candidates']} "
-        "candidatos)"
-    )
-    print(DIVERSITY_OUTPUT)
+        diversity = build_diversity(election_year)
+        diversity_output = DATA_DIR / f"diversidade-{election_year}.json"
+        diversity_output.write_text(
+            json.dumps(diversity, ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        national = diversity["national"]
+        print(
+            f"Diversidade {election_year}: {national['womenElected']}/"
+            f"{national['elected']} mulheres eleitas "
+            f"({national['womenCandidates']}/{national['candidates']} "
+            f"candidatas); {national['negroElected']}/{national['elected']} "
+            f"negros eleitos ({national['negroCandidates']}/"
+            f"{national['candidates']} candidatos)"
+        )
+        print(diversity_output)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 """Confere a base local contra a API pública do TSE.
 
-Para cada deputado em ``app/data/deputados.json`` consulta a ficha oficial no
+Para cada deputado em ``app/data/deputados-2022.json`` consulta a ficha oficial no
 sistema de Divulgação de Candidaturas do TSE (Eleição Geral Federal de 2022) e
 compara:
 
-- ``value2022``  vs  ``totalDeBens``      (patrimônio total declarado)
-- ``items2022``  vs  número de bens (``bens``)
+- ``value``      vs  ``totalDeBens``      (patrimônio total declarado)
+- ``items``      vs  número de bens (``bens``)
 - trajetória eleitoral (``history``)  vs  ``eleicoesAnteriores``
 
 A conferência de trajetória compara apenas a **janela de anos em comum** entre
@@ -37,7 +37,10 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "app" / "data" / "deputados.json"
+# Só a eleição de 2022 é conferida: o código da eleição de 2026 no sistema de
+# Divulgação do TSE ainda não foi confirmado (ver TSE_ID_ELEICAO em
+# app/lib/deputados.ts), então os eleitos de 2026 não têm conferência.
+DATA = ROOT / "app" / "data" / "deputados-2022.json"
 OUTPUT = ROOT / "outputs" / "conferencia-513-tse.md"
 
 # Eleição Geral Federal de 2022 no sistema de Divulgação do TSE.
@@ -113,8 +116,8 @@ def conferir_um(dep: dict, delay: float) -> dict:
     nome = dep.get("name", "?")
     uf = dep.get("uf", "?")
     cand_id = str(dep.get("id", ""))
-    our_val = dep.get("value2022") or 0
-    our_items = dep.get("items2022") or 0
+    our_val = dep.get("value") or 0
+    our_items = dep.get("items") or 0
     try:
         j = fetch_json(api_url(uf, cand_id))
     except Exception as err:  # noqa: BLE001 - registramos e seguimos

@@ -208,8 +208,9 @@ export default function DeputyProfile({
   const [compositionYear, setCompositionYear] = useState<number | null>(null);
 
   const deputyVariation = variation(deputy);
+  const sourceUrl = candidateSourceUrl(deputy);
   const maxComparison = Math.max(
-    deputy.value2022,
+    deputy.value,
     deputy.previousValue ?? 0,
     1,
   );
@@ -252,7 +253,7 @@ export default function DeputyProfile({
             {deputy.party} · {deputy.uf} · {deputy.priorCandidacies} candidaturas
             anteriores
           </span>
-          <small>Foto oficial da candidatura em 2022.</small>
+          <small>Foto oficial da candidatura em {deputy.electionYear}.</small>
           <div className="profile-source-links">
             {permalink && (
               <Link
@@ -262,16 +263,16 @@ export default function DeputyProfile({
                 Página deste deputado →
               </Link>
             )}
-            <a
-              href={candidateSourceUrl(deputy)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Ficha no TSE ↗
-            </a>
-            <small className="source-hint">
-              Inclui bens declarados, eleições e prestação de contas.
-            </small>
+            {sourceUrl && (
+              <>
+                <a href={sourceUrl} target="_blank" rel="noreferrer">
+                  Ficha no TSE ↗
+                </a>
+                <small className="source-hint">
+                  Inclui bens declarados, eleições e prestação de contas.
+                </small>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -297,13 +298,13 @@ export default function DeputyProfile({
           />
         </div>
         <div className="comparison-label">
-          <span>2022</span>
-          <strong>{money.format(deputy.value2022)}</strong>
+          <span>{deputy.electionYear}</span>
+          <strong>{money.format(deputy.value)}</strong>
         </div>
         <div className="bar-track">
           <span
             className="bar bar-2022"
-            style={{ width: `${(deputy.value2022 / maxComparison) * 100}%` }}
+            style={{ width: `${(deputy.value / maxComparison) * 100}%` }}
           />
         </div>
       </div>
@@ -314,7 +315,7 @@ export default function DeputyProfile({
         <small>
           {deputy.previousValue === null
             ? "Não foi localizada candidatura anterior desde 2000."
-            : `${deputy.previousItems} itens em ${deputy.previousYear} → ${deputy.items2022} em 2022`}
+            : `${deputy.previousItems} itens em ${deputy.previousYear} → ${deputy.items} em ${deputy.electionYear}`}
         </small>
       </div>
 
@@ -326,7 +327,7 @@ export default function DeputyProfile({
         <AssetHistoryChart
           history={deputy.history}
           name={deputy.name}
-          selectedYear={composition?.year ?? 2022}
+          selectedYear={composition?.year ?? deputy.electionYear}
           onSelectYear={setCompositionYear}
         />
         <p className="chart-note">

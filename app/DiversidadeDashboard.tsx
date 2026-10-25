@@ -47,7 +47,7 @@ function DeputyDiversityCard({
           )}
         </div>
         <div>
-          <p>Deputado federal eleito em 2022</p>
+          <p>Deputado federal eleito em {deputy.electionYear}</p>
           <h3>{deputy.name}</h3>
           <span>
             {deputy.party} · {deputy.uf}

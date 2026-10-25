@@ -211,6 +211,33 @@ a {
   transform: translateY(-2px);
 }
 
+.legislature-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.legislature-switch a {
+  border: 1px solid currentColor;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.72;
+  padding: 9px 14px;
+}
+
+.legislature-switch a:hover,
+.legislature-switch a:focus-visible {
+  opacity: 1;
+}
+
+.legislature-switch a[aria-current="page"] {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: white;
+  opacity: 1;
+}
+
 .hero-stats {
   align-self: center;
   border-left: 1px solid rgba(255, 255, 255, 0.16);

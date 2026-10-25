@@ -1,6 +1,6 @@
 """Busca os projetos de lei apresentados por cada deputado na Câmara.
 
-A base de patrimônio (``app/data/deputados.json``) usa o identificador do TSE
+A base de patrimônio (``app/data/deputados-2022.json``) usa o identificador do TSE
 (``SQ_CANDIDATO``), que não existe na API da Câmara -- e casar pelo nome de
 urna falha para muitos deputados (apelidos e nomes de urna diferentes do
 nome usado pela Câmara: "Duarte Jr." vs. "Duarte", "Gleisi" vs. o nome
@@ -35,7 +35,7 @@ from urllib.request import Request, urlopen
 from prepare_data import cpf_key, download_sources, read_csv
 
 ROOT = Path(__file__).resolve().parents[1]
-DEPUTADOS = ROOT / "app" / "data" / "deputados.json"
+DEPUTADOS = ROOT / "app" / "data" / "deputados-2022.json"
 OUTPUT_DIR = ROOT / "public" / "leis"
 
 BASE = "https://dadosabertos.camara.leg.br/api/v2"
@@ -71,7 +71,7 @@ def fetch_json(url: str, retries: int = 3, timeout: int = 20) -> dict:
 
 
 def sq_candidato_to_cpf() -> dict[str, str]:
-    """SQ_CANDIDATO (o "id" usado em deputados.json) -> CPF normalizado."""
+    """SQ_CANDIDATO (o "id" usado em deputados-2022.json) -> CPF normalizado."""
     rows = (
         row
         for row in read_csv(2022, "consulta_cand")
