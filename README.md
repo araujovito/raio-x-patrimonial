@@ -2,7 +2,7 @@
 
 ![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-511%2F513-154e3b)
 ![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-511%2F513-154e3b)
-![Testes](https://img.shields.io/badge/testes-46%20passando-154e3b)
+![Testes](https://img.shields.io/badge/testes-54%20passando-154e3b)
 ![Fonte](https://img.shields.io/badge/fonte-TSE-154e3b)
 
 > **Eleitos de 2022 verificados contra o TSE.** Patrimônio e número de bens conferem em
@@ -19,7 +19,14 @@ de 2026, é em geral a de 2022.
 
 Os eleitos de 2026 são os que o TSE marca como eleitos no resultado apurado
 (deputados federais são eleitos no primeiro turno); a posse é em fevereiro de
-2027. A página `/leis` (projetos de lei) cobre só os eleitos de 2022, que são
+2027. A página `/comparacao` cruza as duas eleições: quantos dos eleitos de 2022
+foram eleitos de novo, a mudança do patrimônio declarado de quem voltou
+(em reais e em mediana percentual, nominais, sem descontar inflação) e a
+renovação por partido e estado. Reeleito é quem foi eleito Deputado Federal
+nas duas eleições, ligado pelo CPF no pipeline. O percentual não é calculado
+quando a declaração de 2022 foi zero.
+
+A página `/leis` (projetos de lei) cobre só os eleitos de 2022, que são
 quem exerce o mandato hoje.
 
 ## Demonstração
@@ -51,7 +58,7 @@ Para rodar localmente, veja [Rodar o site](#rodar-o-site).
   justifica um banco de dados
 
 **Qualidade**
-- 46 testes com o runner nativo do Node (`node:test`), sem dependências extras
+- 54 testes com o runner nativo do Node (`node:test`), sem dependências extras
 - ESLint
 - Script próprio de verificação contra a API pública do TSE
 
