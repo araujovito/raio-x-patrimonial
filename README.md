@@ -2,28 +2,32 @@
 
 ![Patrimônio conferido](https://img.shields.io/badge/patrim%C3%B4nio%20conferido-511%2F513-154e3b)
 ![Trajetória conferida](https://img.shields.io/badge/trajet%C3%B3ria%20conferida-511%2F513-154e3b)
-![Testes](https://img.shields.io/badge/testes-38%20passando-154e3b)
+![Testes](https://img.shields.io/badge/testes-46%20passando-154e3b)
 ![Fonte](https://img.shields.io/badge/fonte-TSE-154e3b)
 
-> **Dados verificados contra o TSE.** Patrimônio e número de bens conferem em
+> **Eleitos de 2022 verificados contra o TSE.** Patrimônio e número de bens conferem em
 > 511/513 e a trajetória eleitoral em 511/513 dos deputados. Qualquer pessoa pode
 > reproduzir a verificação com `python scripts/conferir_tse.py`.
 
 Aplicação interativa para explorar a trajetória eleitoral, os bens declarados
 e a representatividade de gênero e raça dos 513 deputados federais eleitos em
-2022, com dados públicos do Tribunal Superior Eleitoral e da Câmara dos
-Deputados. O histórico cobre candidaturas desde 2000, e a comparação
-patrimonial usa a declaração anterior mais recente disponível. Quem já
-registrou candidatura para 2026 tem essa candidatura listada na trajetória,
-com o patrimônio declarado agora — a eleição ainda não ocorreu, então aparece
-sem resultado.
+**2026** e dos eleitos em **2022**, com um seletor entre as duas eleições. Os
+dados vêm do Tribunal Superior Eleitoral e, para os projetos de lei, da Câmara
+dos Deputados. O histórico cobre candidaturas desde 2000, e a comparação
+patrimonial usa a declaração anterior mais recente disponível: para os eleitos
+de 2026, é em geral a de 2022.
+
+Os eleitos de 2026 são os que o TSE marca como eleitos no resultado apurado
+(deputados federais são eleitos no primeiro turno); a posse é em fevereiro de
+2027. A página `/leis` (projetos de lei) cobre só os eleitos de 2022, que são
+quem exerce o mandato hoje.
 
 ## Demonstração
 
 **Versão publicada:** [raio-x-patrimonial.baraujovi.workers.dev](https://raio-x-patrimonial.baraujovi.workers.dev)
 
 Três blocos: o **explorador**, com busca, filtros e ordenação sobre os 513
-eleitos; a seção de **diversidade**, com o recorte de gênero e raça entre quem
+eleitos de cada eleição (`/` para 2026, `/eleicao/2022` para 2022); a seção de **diversidade**, com o recorte de gênero e raça entre quem
 concorreu e quem se elegeu, nacional e por estado; e a **página individual de
 cada deputado** (`/deputado/<id>`), que pode ser compartilhada e traz título e
 descrição próprios no link — útil para apontar uma trajetória específica sem
@@ -47,7 +51,7 @@ Para rodar localmente, veja [Rodar o site](#rodar-o-site).
   justifica um banco de dados
 
 **Qualidade**
-- 38 testes com o runner nativo do Node (`node:test`), sem dependências extras
+- 46 testes com o runner nativo do Node (`node:test`), sem dependências extras
 - ESLint
 - Script próprio de verificação contra a API pública do TSE
 
@@ -146,9 +150,28 @@ eleitoral de 2022 precisou da fonte alternativa). A verificação contra a API
 do TSE confirma que patrimônio e bens desses 18 batem normalmente — a falha
 estava isolada à totalização, não ao registro da candidatura em si.
 
+### 6. O TSE corrigiu o Maranhão, e a correção virou defeito
+
+Na atualização de outubro de 2026, o arquivo `consulta_cand_2022` do TSE já traz
+os 18 eleitos do Maranhão. A reconciliação pela composição atual da Câmara
+passou a incluir um suplente em exercício (Hildo Rocha) e a deixar de fora
+quem se elegeu e saiu (Roseana Sarney), e o estado ficou com 19 eleitos para 18
+cadeiras. Quem apontou foi a conferência por cadeiras descrita abaixo.
+`prepare_data.py` agora só aplica a reconciliação enquanto o arquivo do TSE
+não tiver nenhum eleito proporcional no MA.
+
+### 7. Como saber que a lista de eleitos está completa
+
+O número de cadeiras por estado é fixado em lei (LC 78/1993, atualizada pela
+LC 161/2018) e é o mesmo em 2022 e 2026. `prepare_data.py` compara a contagem de
+eleitos de cada UF com essas cadeiras e avisa na divergência, e há um teste que
+falha se algum estado não fechar. É uma conferência independente do TSE: ela
+pegou o caso acima, e teria pegado o do Maranhão em 2022.
+
 ## O que o projeto demonstra
 
-- ingestão e limpeza de dados públicos;
+- ingestão e limpeza de dados públicos, em duas eleições com o mesmo código;
+- conferência independente do resultado (cadeiras por estado fixadas em lei);
 - relacionamento de registros entre eleições, cargos e partidos;
 - agregação e categorização de bens;
 - construção de linhas do tempo eleitorais;
@@ -180,11 +203,10 @@ python scripts/prepare_data.py
 
 O script baixa os conjuntos `consulta_cand` e `bem_candidato` do TSE (o
 primeiro desde 2000, o segundo desde 2006), seleciona os candidatos a deputado
-federal eleitos em 2022 e gera `app/data/deputados.json` e
-`app/data/diversidade.json` (gênero e raça, candidatos e eleitos, por estado).
-Quando uma candidatura para 2026 já está registrada, ela entra na trajetória
-do deputado com o patrimônio declarado e sem resultado (a eleição ainda não
-ocorreu).
+federal eleitos em 2022 e em 2026 e gera, para cada eleição,
+`app/data/deputados-<ano>.json` e `app/data/diversidade-<ano>.json` (gênero e
+raça, candidatos e eleitos, por estado). A trajetória de cada deputado inclui
+as candidaturas até o ano da eleição dele.
 
 ## Verificar os dados contra o TSE
 
@@ -199,6 +221,11 @@ O script compara, para cada um dos 513 deputados, o **patrimônio total** e o
 **número de bens** declarados, além da **trajetória eleitoral** (na janela de
 anos em comum entre as duas fontes). Gera um relatório em
 `outputs/conferencia-513-tse.md`. Use `--limit N` para uma amostra rápida.
+
+A conferência cobre só os eleitos de 2022: o código da eleição de 2026 no
+sistema de Divulgação do TSE não foi confirmado (a API recusou a consulta
+feita do ambiente de desenvolvimento), então os eleitos de 2026 ainda não
+têm essa verificação nem o link para a ficha no TSE.
 
 Na última verificação, patrimônio e número de bens conferiram em **511/513** e a
 trajetória eleitoral em **511/513** (as duas exceções são candidaturas
@@ -225,6 +252,9 @@ pnpm test
 
 ## Limitações
 
+- Eleitos de 2026: sem link para a ficha no TSE e sem verificação pela API,
+  pelo motivo descrito acima. As fotos oficiais da candidatura de 2026 ainda
+  não foram baixadas; o site mostra a inicial do nome no lugar.
 - Os valores foram declarados pelos próprios candidatos.
 - A variação exibida é nominal e não desconta a inflação.
 - Ausência de comparação significa que não foi localizada declaração anterior
