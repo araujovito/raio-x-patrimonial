@@ -109,6 +109,7 @@ export default function Dashboard({
           <Link href={year === LEGISLATURE_YEARS[0] ? "/diversidade" : `/diversidade/${year}`}>
             Diversidade
           </Link>
+          <Link href="/comparacao">2022 → 2026</Link>
           <Link href="/leis">Leis</Link>
           <a href="#metodologia">Metodologia</a>
           <a

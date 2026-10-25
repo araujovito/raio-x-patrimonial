@@ -137,3 +137,14 @@ test("deputado sem declaração anterior é mostrado como não comparável", asy
   // A lista inicial exibe esse rótulo em vez de inventar uma variação.
   assert.match(html, /sem comparação/);
 });
+
+test("a página de comparação 2022 → 2026 responde com resumo e tabelas", async () => {
+  const response = await render("/comparacao");
+  assert.equal(response.status, 200);
+  const pagina = await response.text();
+
+  assert.match(pagina, /Quem voltou e quanto mudou/);
+  assert.match(pagina, /Maiores aumentos declarados/);
+  assert.match(pagina, /Renovação por partido/);
+  assert.match(pagina, /não descontam a inflação/);
+});
